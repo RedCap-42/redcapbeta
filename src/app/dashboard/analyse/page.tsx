@@ -1,13 +1,11 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
 import { useAuth } from '@/context/AuthContext';
 import ActivitySelector from '@/components/ActivitySelector';
 
 export default function AnalysePage() {
   const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const { user } = useAuth();
 
   useEffect(() => {
@@ -24,14 +22,6 @@ export default function AnalysePage() {
     return (
       <div className="flex justify-center items-center min-h-[calc(100vh-64px)]">
         <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-indigo-500"></div>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="p-4 bg-red-100 border border-red-400 text-red-700 rounded mb-4">
-        {error}
       </div>
     );
   }

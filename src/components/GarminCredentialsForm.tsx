@@ -65,7 +65,7 @@ export default function GarminCredentialsForm() {
     
     try {
       // Vérifier si l'utilisateur a déjà des identifiants
-      const { data: existingData, error: checkError } = await supabase
+      const { data: existingData } = await supabase
         .from('garmin_credentials')
         .select('id')
         .eq('user_id', user.id)
@@ -100,9 +100,10 @@ export default function GarminCredentialsForm() {
       
       setHasCredentials(true);
       setIsEditing(false);
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const typedError = error as { message: string };
       console.error('Erreur lors de l\'enregistrement des identifiants Garmin:', error);
-      setError(error.message || 'Une erreur est survenue lors de l\'enregistrement de vos identifiants');
+      setError(typedError.message || 'Une erreur est survenue lors de l\'enregistrement de vos identifiants');
     } finally {
       setLoading(false);
     }
@@ -213,3 +214,4 @@ export default function GarminCredentialsForm() {
     </div>
   );
 }
+

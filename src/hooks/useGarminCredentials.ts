@@ -9,6 +9,10 @@ type GarminCredentials = {
   password: string;
 };
 
+type ErrorType = {
+  message: string;
+};
+
 export function useGarminCredentials() {
   const [credentials, setCredentials] = useState<GarminCredentials | null>(null);
   const [loading, setLoading] = useState(true);
@@ -45,9 +49,10 @@ export function useGarminCredentials() {
           // Aucun identifiant trouvé
           setCredentials(null);
         }
-      } catch (err: any) {
+      } catch (err: unknown) {
+        const typedError = err as ErrorType;
         console.error('Erreur inattendue:', err);
-        setError(err.message || 'Une erreur est survenue');
+        setError(typedError.message || 'Une erreur est survenue');
       } finally {
         setLoading(false);
       }
@@ -58,3 +63,4 @@ export function useGarminCredentials() {
 
   return { credentials, loading, error };
 }
+

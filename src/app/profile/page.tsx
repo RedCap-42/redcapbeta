@@ -34,9 +34,10 @@ export default function ProfilePage() {
     <div className="max-w-4xl mx-auto p-8">
       <h1 className="text-3xl font-bold mb-8 text-center">Votre profil</h1>
       <p className="text-center mb-8">
-        Cette page n'est accessible qu'aux utilisateurs connectés.
+        Cette page n&apos;est accessible qu&apos;aux utilisateurs connectés.
       </p>
       <UserProfile />
     </div>
   );
 }
+

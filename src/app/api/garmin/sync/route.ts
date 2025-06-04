@@ -6,6 +6,7 @@ import fs from 'fs';
 import path from 'path';
 import os from 'os';
 import AdmZip from 'adm-zip';
+import { SupabaseClient } from '@supabase/supabase-js';
 
 // Fonction pour extraire un fichier zip
 async function extractZip(zipFilePath: string, extractToPath: string): Promise<string[]> {
@@ -49,7 +50,7 @@ function findFitFile(directory: string): string | null {
 }
 
 // Vérifier si une activité existe déjà en base de données
-async function activityExists(supabase: any, userId: string, activityId: number): Promise<boolean> {
+async function activityExists(supabase: SupabaseClient, userId: string, activityId: number): Promise<boolean> {
   const { data, error } = await supabase
     .from('garmin_activities')
     .select('id')
@@ -65,7 +66,7 @@ async function activityExists(supabase: any, userId: string, activityId: number)
 }
 
 // Supprimer un fichier s'il existe dans le bucket
-async function deleteFileIfExists(supabase: any, bucket: string, path: string) {
+async function deleteFileIfExists(supabase: SupabaseClient, bucket: string, path: string) {
   try {
     await supabase.storage.from(bucket).remove([path]);
     console.log(`Fichier existant supprimé: ${path}`);
@@ -75,10 +76,24 @@ async function deleteFileIfExists(supabase: any, bucket: string, path: string) {
   }
 }
 
+// Définition d'un type pour les activités Garmin
+type GarminActivity = {
+  activityId: number;
+  activityName: string;
+  activityType: {
+    typeKey: string;
+    typeId?: number;
+  };
+  startTimeLocal: string;
+  duration: number;
+  distance: number;
+  // Autres propriétés potentielles
+};
+
 export async function POST(request: NextRequest) {
   try {
     // Vérifier l'authentification
-    const cookiesStore = await cookies();
+    const cookiesStore = cookies();
     const supabase = createRouteHandlerClient({ cookies: () => cookiesStore });
     const { data: { session } } = await supabase.auth.getSession();
 
@@ -119,15 +134,18 @@ export async function POST(request: NextRequest) {
     console.log('Connecté à Garmin Connect');
 
     // Vérifier la dernière date de synchronisation
-    const { data: lastSync } = await supabase
+    const { data: syncData } = await supabase
       .from('user_sync_status')
       .select('last_sync_date')
       .eq('user_id', userId)
       .single();
 
+    // Utilisation optionnelle de syncData si nécessaire
+    console.log('Dernière synchronisation:', syncData?.last_sync_date || 'Jamais');
+
     let activityOffset = 0;
     const pageSize = 20; // Nombre d'activités par page
-    let allActivities = [];
+    let allActivities: GarminActivity[] = [];
     let hasMore = true;
     const runningActivityTypes = ['running', 'trail_running', 'treadmill_running', 'track_running', 'indoor_running', 'virtual_run'];
 
@@ -270,7 +288,7 @@ export async function POST(request: NextRequest) {
             .from('database')
             .upload(`${userFolderPath}/.keep`, new Blob([]));
 
-          if (uploadError && uploadError.statusCode !== '409') {
+          if (uploadError && uploadError.message !== 'The resource already exists') {
             console.error('Erreur lors de la création du dossier utilisateur:', uploadError);
           }
         }
@@ -362,10 +380,11 @@ export async function POST(request: NextRequest) {
       message: 'Activités téléchargées avec succès',
       newActivities: processedActivities
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Erreur lors de la synchronisation avec Garmin:', error);
+    const errorMessage = error instanceof Error ? error.message : 'Erreur lors de la synchronisation avec Garmin Connect';
     return NextResponse.json(
-      { error: error.message || 'Erreur lors de la synchronisation avec Garmin Connect' },
+      { error: errorMessage },
       { status: 500 }
     );
   }

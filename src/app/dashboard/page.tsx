@@ -15,7 +15,7 @@ export default function DashboardHome() {
       {/* Section pour les identifiants Garmin */}
       <div className="bg-white rounded-lg shadow-sm p-6">
         <h2 className="text-xl font-bold text-gray-800 mb-4">Configuration Garmin Connect</h2>
-        <p className="text-gray-600 mb-4">Configurez vos identifiants Garmin Connect pour synchroniser vos données d'activité.</p>
+        <p className="text-gray-600 mb-4">Configurez vos identifiants Garmin Connect pour synchroniser vos données d&apos;activité.</p>
         <GarminCredentialsForm />
       </div>
     </>

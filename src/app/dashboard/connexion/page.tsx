@@ -1,7 +1,6 @@
 'use client';
 
 import { useState } from 'react';
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
 import { useAuth } from '@/context/AuthContext';
 import { useGarminCredentials } from '@/hooks/useGarminCredentials';
 
@@ -11,7 +10,6 @@ export default function ConnexionPage() {
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const supabase = createClientComponentClient();
 
   const handleConnectGarmin = async () => {
     if (!user) {
@@ -47,9 +45,10 @@ export default function ConnexionPage() {
       }
 
       setMessage(`Synchronisation réussie ! ${data.newActivities} nouvelles activités téléchargées.`);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Erreur lors de la connexion à Garmin:', error);
-      setError(error.message || 'Une erreur est survenue lors de la connexion à Garmin Connect');
+      const errorMessage = error instanceof Error ? error.message : 'Une erreur est survenue lors de la connexion à Garmin Connect';
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }

@@ -16,6 +16,10 @@ type Activity = {
   user_id: string;
 };
 
+type ErrorType = {
+  message: string;
+};
+
 export default function ActivitySelector() {
   const [activities, setActivities] = useState<Activity[]>([]);
   const [selectedActivity, setSelectedActivity] = useState<Activity | null>(null);
@@ -52,8 +56,9 @@ export default function ActivitySelector() {
 
         console.log(`${data?.length || 0} activités chargées`);
         setActivities(data || []);
-      } catch (err: any) {
-        setError(err.message || 'Erreur lors du chargement des activités');
+      } catch (err: unknown) {
+        const typedError = err as ErrorType;
+        setError(typedError.message || 'Erreur lors du chargement des activités');
         console.error('Erreur lors du chargement des activités:', err);
       } finally {
         setIsLoading(false);
@@ -116,8 +121,9 @@ export default function ActivitySelector() {
 
       console.log('Fichier FIT chargé avec succès:', fileData);
 
-    } catch (err: any) {
-      setError(err.message || 'Erreur lors du chargement du fichier');
+    } catch (err: unknown) {
+      const typedError = err as ErrorType;
+      setError(typedError.message || 'Erreur lors du chargement du fichier');
       console.error('Erreur lors du chargement du fichier:', err);
     } finally {
       setLoadingActivity(false);
@@ -154,19 +160,6 @@ export default function ActivitySelector() {
     });
   };
 
-  const handleActivityChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const activityId = e.target.value;
-    console.log("ID sélectionné:", activityId);
-
-    if (activityId) {
-      const selected = activities.find(a => a.id === activityId);
-      console.log("Activité trouvée:", selected);
-      setSelectedActivity(selected || null);
-    } else {
-      setSelectedActivity(null);
-    }
-  };
-
   // Sélectionner une activité depuis la liste
   const handleSelectActivity = (activity: Activity) => {
     setSelectedActivity(activity);
@@ -192,7 +185,7 @@ export default function ActivitySelector() {
   if (activities.length === 0) {
     return (
       <div className="p-4 bg-yellow-100 border border-yellow-400 text-yellow-700 rounded mb-4">
-        Aucune activité trouvée. Veuillez d'abord synchroniser vos données Garmin.
+        Aucune activité trouvée. Veuillez d&apos;abord synchroniser vos données Garmin.
       </div>
     );
   }
@@ -206,13 +199,13 @@ export default function ActivitySelector() {
       )}
 
       <div className="mb-6 space-y-4">
-        <h2 className="text-xl font-semibold">Sélection d'activité</h2>
+        <h2 className="text-xl font-semibold">Sélection d&apos;activité</h2>
 
         {/* Filtres */}
         <div className="flex flex-col md:flex-row gap-4">
           <div className="md:w-1/3">
             <label htmlFor="activity-type" className="block text-sm font-medium text-gray-700 mb-1">
-              Type d'activité
+              Type d&apos;activité
             </label>
             <select
               id="activity-type"
@@ -314,7 +307,7 @@ export default function ActivitySelector() {
                     <td className="px-4 py-2 whitespace-nowrap text-right text-sm font-medium">
                       <button
                         onClick={(e) => {
-                          e.stopPropagation(); // Empêcher la sélection de l'activité
+                          e.stopPropagation(); // Empêcher la sélection de l&apos;activité
                           handleSelectActivity(activity);
                           handleLoadActivity(activity);
                         }}
@@ -362,7 +355,7 @@ export default function ActivitySelector() {
         </div>
       )}
 
-      {/* Détails de l'activité sélectionnée */}
+      {/* Détails de l&apos;activité sélectionnée */}
       {selectedActivity && (
         <div className="bg-gray-50 p-4 rounded-md border border-gray-200 mb-4">
           <h3 className="font-semibold text-lg mb-2">{selectedActivity.activity_name}</h3>
