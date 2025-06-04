@@ -1,0 +1,114 @@
+'use client';
+
+import Link from 'next/link';
+import { usePathname } from 'next/navigation';
+
+type MenuItem = {
+  name: string;
+  href: string;
+  icon: React.ReactNode;
+};
+
+// Vous pourrez ajouter des icônes SVG ici plus tard
+const HomeIcon = () => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    fill="none"
+    viewBox="0 0 24 24"
+    strokeWidth={1.5}
+    stroke="currentColor"
+    className="w-6 h-6"
+  >
+    <path
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      d="M2.25 12l8.954-8.955c.44-.439 1.152-.439 1.591 0L21.75 12M4.5 9.75v10.125c0 .621.504 1.125 1.125 1.125H9.75v-4.875c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21h4.125c.621 0 1.125-.504 1.125-1.125V9.75M8.25 21h8.25"
+    />
+  </svg>
+);
+
+// Icône pour la page de connexion Garmin
+const ConnectIcon = () => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    fill="none"
+    viewBox="0 0 24 24"
+    strokeWidth={1.5}
+    stroke="currentColor"
+    className="w-6 h-6"
+  >
+    <path
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      d="M13.19 8.688a4.5 4.5 0 011.242 7.244l-4.5 4.5a4.5 4.5 0 01-6.364-6.364l1.757-1.757m13.35-.622l1.757-1.757a4.5 4.5 0 00-6.364-6.364l-4.5 4.5a4.5 4.5 0 001.242 7.244"
+    />
+  </svg>
+);
+
+// Icône pour la page d'analyse
+const AnalysisIcon = () => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    fill="none"
+    viewBox="0 0 24 24"
+    strokeWidth={1.5}
+    stroke="currentColor"
+    className="w-6 h-6"
+  >
+    <path
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      d="M7.5 14.25v2.25m3-4.5v4.5m3-6.75v6.75m3-9v9M6 20.25h12A2.25 2.25 0 0020.25 18V6A2.25 2.25 0 0018 3.75H6A2.25 2.25 0 003.75 6v12A2.25 2.25 0 006 20.25z"
+    />
+  </svg>
+);
+
+export default function Sidebar() {
+  const pathname = usePathname();
+
+  const menuItems: MenuItem[] = [
+    {
+      name: 'Accueil',
+      href: '/dashboard',
+      icon: <HomeIcon />,
+    },
+    {
+      name: 'Connexion',
+      href: '/dashboard/connexion',
+      icon: <ConnectIcon />,
+    },
+    {
+      name: 'Analyse',
+      href: '/dashboard/analyse',
+      icon: <AnalysisIcon />,
+    },
+    // Vous pourrez ajouter d'autres éléments de menu ici plus tard
+  ];
+
+  return (
+    <div className="h-full w-64 bg-gray-800 text-white p-4">
+      <div className="mb-8">
+        <h1 className="text-2xl font-bold">RedCapBeta</h1>
+      </div>
+      <nav>
+        <ul className="space-y-2">
+          {menuItems.map((item) => {
+            const isActive = pathname === item.href;
+            return (
+              <li key={item.href}>
+                <Link
+                  href={item.href}
+                  className={`flex items-center gap-3 px-4 py-2 rounded-md transition-colors ${isActive ? 'bg-blue-600' : 'hover:bg-gray-700'}`}
+                >
+                  {item.icon}
+                  <span>{item.name}</span>
+                </Link>
+              </li>
+            );
+          })}
+        </ul>
+      </nav>
+    </div>
+  );
+}
+
