@@ -25,7 +25,6 @@ export default function ActivitySelector() {
   const [selectedActivity, setSelectedActivity] = useState<Activity | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [loadingActivity, setLoadingActivity] = useState(false);
   const { user } = useAuth();
   const supabase = createClientComponentClient();
 
@@ -106,7 +105,6 @@ export default function ActivitySelector() {
     if (!user) return;
 
     try {
-      setLoadingActivity(true);
       setError(null);
 
       // Télécharger le fichier FIT depuis le bucket storage
@@ -125,8 +123,6 @@ export default function ActivitySelector() {
       const typedError = err as ErrorType;
       setError(typedError.message || 'Erreur lors du chargement du fichier');
       console.error('Erreur lors du chargement du fichier:', err);
-    } finally {
-      setLoadingActivity(false);
     }
   };
 
@@ -363,21 +359,6 @@ export default function ActivitySelector() {
           <p className="mb-1"><span className="font-medium">Date:</span> {formatDate(selectedActivity.start_time)}</p>
           <p className="mb-1"><span className="font-medium">Durée:</span> {formatDuration(selectedActivity.duration)}</p>
           <p className="mb-1"><span className="font-medium">Distance:</span> {formatDistance(selectedActivity.distance)} km</p>
-
-          <button
-            onClick={() => handleLoadActivity(selectedActivity)}
-            disabled={loadingActivity}
-            className="mt-4 px-4 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 disabled:opacity-50"
-          >
-            {loadingActivity ? (
-              <>
-                <span className="inline-block animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-white mr-2 align-[-2px]"></span>
-                Chargement...
-              </>
-            ) : (
-              'Analyser cette activité'
-            )}
-          </button>
         </div>
       )}
     </div>

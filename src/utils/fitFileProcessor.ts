@@ -34,12 +34,12 @@ export async function extractElevationGain(fileBuffer: ArrayBuffer): Promise<num
       const fitParser = new FitParser({
         force: true,
         speedUnit: 'km/h',
-        lengthUnit: 'km', // Correction: lengthUnit au lieu de distanceUnit
+        lengthUnit: 'km',
         elapsedRecordField: true,
         mode: 'list',
       });
 
-      // Écouter l'événement de parsing terminé
+      // Utiliser l'API basée sur les événements
       fitParser.on('data', (data: FitData) => {
         try {
           // Extraire les données d'élévation des records
@@ -70,13 +70,12 @@ export async function extractElevationGain(fileBuffer: ArrayBuffer): Promise<num
         }
       });
 
-      // Écouter les erreurs
       fitParser.on('error', (error: Error) => {
         console.error('Erreur lors du parsing du fichier FIT:', error);
         reject(error);
       });
 
-      // Démarrer le parsing
+      // Lancer le parsing
       fitParser.parse(fileBuffer);
     } catch (err) {
       console.error('Erreur lors de l\'initialisation du FitParser:', err);
