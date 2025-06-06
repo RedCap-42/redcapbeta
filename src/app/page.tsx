@@ -57,7 +57,7 @@ export default function Home() {
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold mb-2">RedCapBeta</h1>
-          <p className="text-gray-600">Plateforme de gestion de projets de recherche</p>
+          <p className="text-gray-600">Web logiciel pour analyser ses données (Garmin)</p>
         </div>
         
         {isAuthenticated ? (

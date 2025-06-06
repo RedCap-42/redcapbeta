@@ -1,14 +1,17 @@
 'use client';
 
 import { useAuth } from '@/context/AuthContext';
-import { supabase } from '@/utils/supabase';
 
 export default function Header() {
-  const { user } = useAuth();
+  const { user, signOut } = useAuth();
 
   const handleSignOut = async () => {
     try {
-      await supabase.auth.signOut();
+      // Utiliser la méthode du contexte d'authentification pour la déconnexion
+      await signOut();
+
+      // Forcer le rafraîchissement complet de la page pour réinitialiser l'état
+      window.location.href = '/';
     } catch (error) {
       console.error('Erreur lors de la déconnexion:', error);
     }
