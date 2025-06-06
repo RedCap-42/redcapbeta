@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/context/AuthContext';
-import ActivitySelector from '@/components/ActivitySelector';
+import ActivityCalendar from '@/components/ActivityCalendar';
 
 export default function AnalysePage() {
   const [isLoading, setIsLoading] = useState(true);
@@ -20,21 +20,20 @@ export default function AnalysePage() {
 
   if (isLoading) {
     return (
-      <div className="flex justify-center items-center min-h-[calc(100vh-64px)]">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-indigo-500"></div>
-      </div>
+        <div className="flex justify-center items-center min-h-[calc(100vh-64px)]">
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-indigo-500"></div>
+        </div>
     );
   }
 
   return (
-    <div className="container mx-auto p-6">
-      <h1 className="text-2xl font-bold mb-6">Analyse d&apos;activités</h1>
+      <div className="container mx-auto p-6">
+        <h1 className="text-2xl font-bold mb-6">Analyse d&apos;activités</h1>
 
-      <div className="bg-white shadow-md rounded-lg p-6">
-        <h2 className="text-xl font-semibold mb-4">Sélectionnez une activité à analyser</h2>
-
-        <ActivitySelector />
+        <div className="mb-4">
+          <h2 className="text-xl font-semibold mb-4">Sélectionnez une date avec activité</h2>
+          <ActivityCalendar />
+        </div>
       </div>
-    </div>
   );
 }
