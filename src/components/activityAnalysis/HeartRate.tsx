@@ -13,6 +13,7 @@ import {
   Title,
   Tooltip,
   Legend,
+  Filler,
   ChartEvent,
 } from 'chart.js';
 import FitParser from 'fit-file-parser';
@@ -25,7 +26,8 @@ ChartJS.register(
   LineElement,
   Title,
   Tooltip,
-  Legend
+  Legend,
+  Filler
 );
 
 type Activity = {
@@ -45,12 +47,19 @@ interface HeartRateDataPoint {
   heartRate: number; // en bpm
 }
 
+interface AltitudeDataPoint {
+  distance: number; // en km
+  altitude: number; // en mètres
+}
+
 interface FitRecord {
   heart_rate?: number;
   distance?: number;
   enhanced_distance?: number;
   speed?: number;
   enhanced_speed?: number;
+  altitude?: number;
+  enhanced_altitude?: number;
   timestamp?: Date;
   [key: string]: unknown;
 }
@@ -65,30 +74,32 @@ type HeartRateProps = {
   activity: Activity;
 };
 
-export default function HeartRate({ activity }: HeartRateProps) {
-  const [loading, setLoading] = useState(false);
+export default function HeartRate({ activity }: HeartRateProps) {  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [heartRateData, setHeartRateData] = useState<HeartRateDataPoint[]>([]);
+  const [altitudeData, setAltitudeData] = useState<AltitudeDataPoint[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [showAltitude, setShowAltitude] = useState(false);
   const [zoomPosition, setZoomPosition] = useState(0); // Position du zoom (0-100%)
   const [zoomLevel, setZoomLevel] = useState(100); // Niveau de zoom (20-100%)
   const { user } = useAuth();
   const supabase = createClientComponentClient();
-
   // Fonction pour calculer les données filtrées selon le zoom
   const getFilteredData = () => {
-    if (heartRateData.length === 0) return { labels: [], data: [] };
+    if (heartRateData.length === 0) return { labels: [], heartRateData: [], altitudeData: [] };
     
     const totalPoints = heartRateData.length;
     const visiblePoints = Math.floor((totalPoints * zoomLevel) / 100);
     const startIndex = Math.floor((totalPoints - visiblePoints) * (zoomPosition / 100));
     const endIndex = startIndex + visiblePoints;
     
-    const filteredData = heartRateData.slice(startIndex, endIndex);
+    const filteredHeartRateData = heartRateData.slice(startIndex, endIndex);
+    const filteredAltitudeData = altitudeData.slice(startIndex, endIndex);
     
     return {
-      labels: filteredData.map(point => point.distance.toFixed(1)),
-      data: filteredData.map(point => point.heartRate)
+      labels: filteredHeartRateData.map(point => point.distance.toFixed(1)),
+      heartRateData: filteredHeartRateData.map(point => point.heartRate),
+      altitudeData: filteredAltitudeData.map(point => point.altitude)
     };
   };
 
@@ -190,8 +201,9 @@ export default function HeartRate({ activity }: HeartRateProps) {
           }          try {
             console.log('Données FIT reçues:', Object.keys(data));
             
-            // Extraire les données de records pour la fréquence cardiaque
+            // Extraire les données de records pour la fréquence cardiaque et l'altitude
             const heartRatePoints: HeartRateDataPoint[] = [];
+            const altitudePoints: AltitudeDataPoint[] = [];
             let lastDistance = 0;
 
             if (data.records && Array.isArray(data.records)) {
@@ -200,23 +212,36 @@ export default function HeartRate({ activity }: HeartRateProps) {
               data.records.forEach((record: FitRecord, index: number) => {
                 const heartRate = record.heart_rate;
                 const distance = record.enhanced_distance || record.distance;
+                const altitude = record.enhanced_altitude || record.altitude;
                 const speed = record.enhanced_speed || record.speed;
 
                 // Méthode 1: Utiliser la distance cumulée si disponible
-                if (distance !== undefined && distance > 0 && heartRate !== undefined && heartRate > 0) {
+                if (distance !== undefined && distance > 0) {
                   const distanceInKm = distance / 1000;
                   
-                  // Filtrer les valeurs aberrantes (fréquence cardiaque réaliste)
-                  if (heartRate > 40 && heartRate < 220) { // Entre 40 et 220 bpm
-                    heartRatePoints.push({
+                  // Ajouter les données de fréquence cardiaque
+                  if (heartRate !== undefined && heartRate > 0) {
+                    // Filtrer les valeurs aberrantes (fréquence cardiaque réaliste)
+                    if (heartRate > 40 && heartRate < 220) { // Entre 40 et 220 bpm
+                      heartRatePoints.push({
+                        distance: distanceInKm,
+                        heartRate: heartRate
+                      });
+                    }
+                  }
+                  
+                  // Ajouter les données d'altitude
+                  if (altitude !== undefined) {
+                    altitudePoints.push({
                       distance: distanceInKm,
-                      heartRate: heartRate
+                      altitude: altitude
                     });
                   }
+                  
                   lastDistance = distance;
                 } 
                 // Méthode 2: Utiliser la vitesse pour estimer la distance si pas de distance cumulée
-                else if (heartRate !== undefined && heartRate > 0 && speed !== undefined && speed > 0 && index > 0) {
+                else if (speed !== undefined && speed > 0 && index > 0) {
                   // Estimer l'intervalle de temps (généralement 1 seconde)
                   const timeInterval = 1; // Par défaut 1 seconde
                   
@@ -226,11 +251,22 @@ export default function HeartRate({ activity }: HeartRateProps) {
                   
                   const distanceInKm = lastDistance / 1000;
                   
-                  // Filtrer les valeurs aberrantes
-                  if (heartRate > 40 && heartRate < 220) {
-                    heartRatePoints.push({
+                  // Ajouter les données de fréquence cardiaque
+                  if (heartRate !== undefined && heartRate > 0) {
+                    // Filtrer les valeurs aberrantes
+                    if (heartRate > 40 && heartRate < 220) {
+                      heartRatePoints.push({
+                        distance: distanceInKm,
+                        heartRate: heartRate
+                      });
+                    }
+                  }
+                  
+                  // Ajouter les données d'altitude
+                  if (altitude !== undefined) {
+                    altitudePoints.push({
                       distance: distanceInKm,
-                      heartRate: heartRate
+                      altitude: altitude
                     });
                   }
                 }
@@ -238,7 +274,9 @@ export default function HeartRate({ activity }: HeartRateProps) {
             }
 
             console.log(`Points de fréquence cardiaque extraits: ${heartRatePoints.length}`);
+            console.log(`Points d'altitude extraits: ${altitudePoints.length}`);
             setHeartRateData(heartRatePoints);
+            setAltitudeData(altitudePoints);
             setLoading(false);
           } catch (err) {
             console.error('Erreur lors de l\'extraction des données de fréquence cardiaque:', err);
@@ -280,7 +318,6 @@ export default function HeartRate({ activity }: HeartRateProps) {
       document.body.style.overflow = 'unset';
     };
   }, [isModalOpen]);
-
   // Configuration du graphique
   const chartData = {
     labels: heartRateData.map(point => point.distance.toFixed(1)),
@@ -298,10 +335,26 @@ export default function HeartRate({ activity }: HeartRateProps) {
         pointHoverBorderColor: 'white', // Bordure blanche pour la bille
         pointHoverBorderWidth: 2, // Épaisseur de la bordure
         tension: 0.1, // Léger lissage pour la courbe de fréquence cardiaque
+        yAxisID: 'y',
       },
+      ...(showAltitude && altitudeData.length > 0 ? [{
+        label: 'Altitude (m)',
+        data: altitudeData.map(point => point.altitude),
+        borderColor: 'rgba(34, 197, 94, 0.8)', // Vert pour l'altitude
+        backgroundColor: 'rgba(34, 197, 94, 0.1)',
+        borderWidth: 1,
+        pointRadius: 0,
+        pointHoverRadius: 6,
+        pointHitRadius: 10,
+        fill: true,
+        tension: 0.2,
+        yAxisID: 'y1',
+        pointHoverBackgroundColor: 'rgb(34, 197, 94)',
+        pointHoverBorderColor: 'white',
+        pointHoverBorderWidth: 2,
+      }] : []),
     ],
   };
-
   const chartOptions = {
     responsive: true,
     maintainAspectRatio: false,
@@ -318,7 +371,8 @@ export default function HeartRate({ activity }: HeartRateProps) {
     },
     plugins: {
       legend: {
-        display: false,
+        display: showAltitude && altitudeData.length > 0,
+        position: 'top' as const,
       },
       title: {
         display: false,
@@ -326,7 +380,7 @@ export default function HeartRate({ activity }: HeartRateProps) {
       tooltip: {
         intersect: false, // Permet d'afficher le tooltip même sans être exactement sur un point
         mode: 'index' as const, // Affiche le tooltip pour le point le plus proche sur l'axe X
-        displayColors: false, // Masque la petite couleur dans le tooltip
+        displayColors: showAltitude && altitudeData.length > 0, // Affiche les couleurs seulement si altitude visible
         backgroundColor: 'rgba(0, 0, 0, 0.8)', // Fond du tooltip plus opaque
         titleColor: 'white',
         bodyColor: 'white',
@@ -335,9 +389,14 @@ export default function HeartRate({ activity }: HeartRateProps) {
         cornerRadius: 6,
         caretPadding: 10,
         callbacks: {
-          label: function(context: { parsed: { y: number } }) {
-            const heartRate = Math.round(context.parsed.y);
-            return `Fréquence cardiaque: ${heartRate} bpm`;
+          label: function(context: { datasetIndex: number; parsed: { y: number } }) {
+            if (context.datasetIndex === 0) {
+              const heartRate = Math.round(context.parsed.y);
+              return `Fréquence cardiaque: ${heartRate} bpm`;
+            } else {
+              const altitude = Math.round(context.parsed.y);
+              return `Altitude: ${altitude} m`;
+            }
           },
           title: function(context: Array<{ label: string }>) {
             return `Distance: ${context[0].label} km`;
@@ -358,7 +417,9 @@ export default function HeartRate({ activity }: HeartRateProps) {
         }
       },
       y: {
+        type: 'linear' as const,
         display: true,
+        position: 'left' as const,
         title: {
           display: true,
           text: 'Fréquence cardiaque (bpm)'
@@ -374,6 +435,26 @@ export default function HeartRate({ activity }: HeartRateProps) {
           }
         }
       },
+      ...(showAltitude && altitudeData.length > 0 ? {
+        y1: {
+          type: 'linear' as const,
+          display: true,
+          position: 'right' as const,
+          title: {
+            display: true,
+            text: 'Altitude (m)'
+          },
+          grid: {
+            drawOnChartArea: false,
+          },
+          ticks: {
+            callback: function(value: string | number) {
+              const numValue = typeof value === 'string' ? parseFloat(value) : value;
+              return `${Math.round(numValue)} m`;
+            }
+          }
+        },
+      } : {}),
     },
   };
 
@@ -385,10 +466,38 @@ export default function HeartRate({ activity }: HeartRateProps) {
       </div>
     );
   }
-
   return (
     <div>
-      <h4 className="text-lg font-semibold text-gray-800 mb-4">Analyse de la Fréquence Cardiaque</h4>
+      <div className="flex items-center justify-between mb-4">
+        <h4 className="text-lg font-semibold text-gray-800">Analyse de la Fréquence Cardiaque</h4>
+        
+        {/* Bouton pour activer/désactiver l'affichage de l'altitude */}
+        {altitudeData.length > 0 && (
+          <button
+            onClick={() => setShowAltitude(!showAltitude)}
+            className={`flex items-center px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
+              showAltitude
+                ? 'bg-green-100 text-green-800 hover:bg-green-200'
+                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+            }`}
+          >
+            <svg 
+              className={`w-4 h-4 mr-2 transition-colors ${showAltitude ? 'text-green-600' : 'text-gray-500'}`} 
+              fill="none" 
+              stroke="currentColor" 
+              viewBox="0 0 24 24"
+            >
+              <path 
+                strokeLinecap="round" 
+                strokeLinejoin="round" 
+                strokeWidth={2} 
+                d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z" 
+              />
+            </svg>
+            {showAltitude ? 'Masquer l\'altitude' : 'Afficher l\'altitude'}
+          </button>
+        )}
+      </div>
       
       {error && (
         <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-4">
@@ -448,25 +557,49 @@ export default function HeartRate({ activity }: HeartRateProps) {
             <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-6xl max-h-[90vh] overflow-hidden animate-in zoom-in-95 duration-300">
               {/* Header du modal */}
               <div className="flex items-center justify-between p-6 border-b border-gray-200 bg-gradient-to-r from-red-50 to-pink-50">
-                <div>
-                  <h2 className="text-2xl font-bold text-gray-900">
-                    Analyse détaillée de la fréquence cardiaque
+                <div>                  <h2 className="text-2xl font-bold text-gray-900">
+                    Analyse détaillée de la fréquence cardiaque{showAltitude ? ' et altitude' : ''}
                   </h2>
                   <p className="text-sm text-gray-600 mt-1">
                     {activity.name} • {heartRateData.length} points de données
-                  </p>
-                </div>
-                
-                {/* Bouton de fermeture */}
-                <button
-                  onClick={() => setIsModalOpen(false)}
-                  className="flex items-center justify-center w-10 h-10 bg-white hover:bg-gray-50 rounded-full shadow-md transition-all duration-200 hover:scale-105"
-                >
-                  <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                  </svg>
-                </button>
+                  </p>                {/* Bouton pour activer/désactiver l'affichage de l'altitude dans le modal */}
+                {altitudeData.length > 0 && (
+                  <button
+                    onClick={() => setShowAltitude(!showAltitude)}
+                    className={`flex items-center px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
+                      showAltitude
+                        ? 'bg-green-100 text-green-800 hover:bg-green-200'
+                        : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                    }`}
+                  >
+                    <svg 
+                      className={`w-4 h-4 mr-2 transition-colors ${showAltitude ? 'text-green-600' : 'text-gray-500'}`} 
+                      fill="none" 
+                      stroke="currentColor" 
+                      viewBox="0 0 24 24"
+                    >
+                      <path 
+                        strokeLinecap="round" 
+                        strokeLinejoin="round" 
+                        strokeWidth={2} 
+                        d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z" 
+                      />
+                    </svg>
+                    {showAltitude ? 'Masquer l\'altitude' : 'Afficher l\'altitude'}
+                  </button>
+                )}
               </div>
+                
+              {/* Bouton de fermeture */}
+              <button
+                onClick={() => setIsModalOpen(false)}
+                className="flex items-center justify-center w-10 h-10 bg-white hover:bg-gray-50 rounded-full shadow-md transition-all duration-200 hover:scale-105"
+              >
+                <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
 
               {/* Corps du modal avec le graphique */}
               <div className="p-6">
@@ -485,11 +618,10 @@ export default function HeartRate({ activity }: HeartRateProps) {
                         value={zoomLevel}
                         onChange={(e) => setZoomLevel(Number(e.target.value))}
                         className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer slider"
-                      />
-                      <div className="flex justify-between text-xs text-gray-500 mt-1">
-                        <span>Vue complète</span>
-                        <span>{zoomLevel}%</span>
+                      />                      <div className="flex justify-between text-xs text-gray-500 mt-1">
                         <span>Zoom max</span>
+                        <span>{zoomLevel}%</span>
+                        <span>Vue complète</span>
                       </div>
                     </div>
                   </div>
