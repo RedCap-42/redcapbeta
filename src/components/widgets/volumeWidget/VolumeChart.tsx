@@ -349,37 +349,37 @@ export default function VolumeChart() {
 
   // Préparer les données pour le graphique
   const chartData = {
-    labels: weeklyVolumes.map(() => ''), // Labels vides car nous les affichons avec les ticks personnalisés
+    labels: weeklyVolumes.map(() => ''),
     datasets: [
       {
         label: 'Volume (km)',
         data: weeklyVolumes.map(week => week.totalDistance),
-        borderColor: 'rgba(59, 130, 246, 1)', // Bleu pour la ligne
-        borderWidth: 2,
+        borderColor: 'rgba(59, 130, 246, 1)',
+        borderWidth: 2.5, // Ligne légèrement plus épaisse
         pointRadius: 4,
-        pointBackgroundColor: 'rgba(59, 130, 246, 1)', // Points bleus
+        pointBackgroundColor: 'rgba(59, 130, 246, 1)',
         pointBorderColor: '#ffffff',
-        pointBorderWidth: 1.5,
-        pointHoverRadius: 6,
-        tension: 0, // 0 = lignes droites (pas de courbes)
-        fill: false, // Pas de remplissage sous la ligne
-        yAxisID: 'y' // Axe Y principal pour le volume
+        pointBorderWidth: 2, // Bordure de point plus visible
+        pointHoverRadius: 7, // Point plus grand au survol
+        tension: 0.1, // Légère courbure pour un aspect plus doux
+        fill: false,
+        yAxisID: 'y'
       },
-      // Ajouter la série de données pour le dénivelé seulement si showElevation est true
+
       ...(showElevation ? [
         {
           label: 'Dénivelé positif (m)',
           data: weeklyVolumes.map(week => week.totalElevation),
-          borderColor: 'rgba(220, 38, 38, 1)', // Rouge pour la ligne de dénivelé
-          borderWidth: 2,
+          borderColor: 'rgba(239, 68, 68, 1)', // Rouge plus vif
+          borderWidth: 2.5,
           pointRadius: 4,
-          pointBackgroundColor: 'rgba(220, 38, 38, 1)', // Points rouges
+          pointBackgroundColor: 'rgba(239, 68, 68, 1)',
           pointBorderColor: '#ffffff',
-          pointBorderWidth: 1.5,
-          pointHoverRadius: 6,
-          tension: 0,
+          pointBorderWidth: 2,
+          pointHoverRadius: 7,
+          tension: 0.1,
           fill: false,
-          yAxisID: 'y1' // Axe Y secondaire pour le dénivelé
+          yAxisID: 'y1'
         }
       ] : [])
     ]
@@ -391,20 +391,32 @@ export default function VolumeChart() {
     maintainAspectRatio: false,
     plugins: {
       legend: {
-        display: showElevation, // Afficher la légende seulement s'il y a deux séries
+        display: showElevation,
         position: 'top' as const,
         labels: {
           usePointStyle: true,
           boxWidth: 10,
-          padding: 20
+          padding: 15, // Espacement de la légende
+          font: { family: 'Inter, sans-serif', size: 12 },
+          color: '#4B5563' // Couleur du texte de la légende
         }
       },
       tooltip: {
+        backgroundColor: 'rgba(31, 41, 55, 0.9)', // Fond de tooltip plus sombre
+        titleColor: '#ffffff',
+        bodyColor: '#ffffff',
+        titleFont: {
+          size: 13, // Taille du titre du tooltip
+          weight: 'bold' as const,
+          family: 'Inter, sans-serif'
+        },
+        bodyFont: {
+          size: 12,
+          family: 'Inter, sans-serif'
+        },
         callbacks: {
           title: (context: {dataIndex: number}[]) => {
             const index = context[0].dataIndex;
-            // Utiliser weeklyVolumes au lieu de weeklyVolumeData qui n'existe pas
-            // Former une chaîne de date à partir des propriétés weekStart et weekEnd
             const week = weeklyVolumes[index];
             if (week) {
               const startDate = new Date(week.weekStart).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' });
@@ -423,13 +435,7 @@ export default function VolumeChart() {
             return '';
           }
         },
-        backgroundColor: 'rgba(0, 0, 0, 0.8)',
-        titleColor: '#ffffff',
-        bodyColor: '#ffffff',
-        titleFont: {
-          size: 14,
-          weight: 'bold' as const
-        }
+        padding: 10 // Padding interne du tooltip
       }
     },
     scales: {
@@ -437,20 +443,23 @@ export default function VolumeChart() {
         type: 'linear' as const,
         display: true,
         position: 'left' as const,
-        beginAtZero: true,
-        title: {
+        beginAtZero: true,        title: {
           display: true,
           text: 'Kilomètres',
-          color: '#666'
+          color: '#4B5563',
+          font: { family: 'Inter, sans-serif', size: 12, weight: 500 }
         },
         grid: {
           display: true,
-          color: 'rgba(0, 0, 0, 0.05)'
+          color: 'rgba(229, 231, 235, 0.6)' // Grille légèrement plus visible
+        },
+        ticks: {
+          font: { family: 'Inter, sans-serif' },
+          color: '#6B7280'
         }
       },
-      // Axe Y secondaire pour le dénivelé (affiché uniquement si showElevation est true)
-      ...(showElevation ? {
-        y1: {
+
+      ...(showElevation ? {        y1: {
           type: 'linear' as const,
           display: true,
           position: 'right' as const,
@@ -458,10 +467,15 @@ export default function VolumeChart() {
           title: {
             display: true,
             text: 'Dénivelé (m)',
-            color: 'rgba(220, 38, 38, 1)'
+            color: 'rgba(239, 68, 68, 1)',
+            font: { family: 'Inter, sans-serif', size: 12, weight: 500 }
           },
           grid: {
             display: false
+          },
+          ticks: {
+            font: { family: 'Inter, sans-serif' },
+            color: 'rgba(239, 68, 68, 0.8)' // Couleur des ticks pour l'axe du dénivelé
           }
         }
       } : {}),
@@ -471,18 +485,20 @@ export default function VolumeChart() {
         },
         ticks: {
           callback: function(val: unknown, index: number) {
-            // Afficher uniquement les mois au début de chaque mois
             const week = weeklyVolumes[index];
             if (week?.isFirstOfMonth) {
               return week.month;
             }
             return '';
           },
-          color: '#666',
+          color: '#4B5563', // Couleur des ticks de l'axe X
           font: {
-            weight: 'bold' as const  // Correction: 'bold' au lieu de 'bold' string générique
+            weight: 500, // Changé de "500" (string) à 500 (number)
+            family: 'Inter, sans-serif',
+            size: 11 // Taille de police pour les mois
           },
-          maxRotation: 0 // Garder les labels horizontaux
+          maxRotation: 0,
+          padding: 10 // Espacement des ticks de l'axe X
         }
       }
     }
@@ -490,27 +506,30 @@ export default function VolumeChart() {
 
   if (isLoading) {
     return (
-        <div className="flex justify-center items-center h-64">
-          <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500"></div>
-          <span className="ml-2 text-gray-500">Chargement...</span>
+        <div className="flex justify-center items-center h-80 bg-white rounded-lg shadow-md border border-gray-200">
+          <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-indigo-600"></div>
+          <span className="ml-3 text-gray-600">Chargement du volume...</span>
         </div>
     );
   }
 
   if (error) {
     return (
-        <div className="p-4 bg-red-50 border border-red-200 rounded-lg text-red-600">
-          <p>Erreur: {error}</p>
+        <div className="h-80 bg-white rounded-lg shadow-md border border-gray-200 p-6 flex flex-col justify-center items-center">
+          <svg className="w-16 h-16 text-red-400 mb-4" fill="none" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" viewBox="0 0 24 24" stroke="currentColor"><path d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+          <p className="text-red-600 font-semibold mb-1">Erreur de chargement</p>
+          <p className="text-gray-500 text-sm text-center">{error}</p>
         </div>
     );
   }
 
   if (weeklyVolumes.length === 0) {
     return (
-        <div className="p-4 bg-blue-50 border border-blue-100 rounded-lg">
-          <p className="text-center text-blue-600">
-            Aucune donnée d&apos;entraînement disponible.
-            Synchronisez vos activités pour voir votre volume d&apos;entraînement.
+        <div className="h-80 bg-white rounded-lg shadow-md border border-gray-200 p-6 flex flex-col justify-center items-center">
+           <svg className="w-16 h-16 text-blue-400 mb-4" fill="none" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" viewBox="0 0 24 24" stroke="currentColor"><path d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path></svg>
+          <p className="text-blue-600 font-semibold mb-1">Aucune donnée d&apos;entraînement</p>
+          <p className="text-gray-500 text-sm text-center">
+            Synchronisez vos activités pour visualiser votre volume hebdomadaire.
           </p>
         </div>
     );
@@ -521,13 +540,13 @@ export default function VolumeChart() {
   const totalElevation = weeklyVolumes.reduce((sum, week) => sum + week.totalElevation, 0);
 
   return (
-      <div className="bg-white rounded-lg shadow p-4">
-        <div className="flex flex-col sm:flex-row justify-between gap-2 sm:items-center mb-2">
+      <div className="bg-white rounded-lg shadow-md border border-gray-200 p-4">
+        <div className="flex flex-col sm:flex-row justify-between gap-2 sm:items-center mb-3">
           <h3 className="text-lg font-semibold text-gray-800">Volume d&apos;entraînement hebdomadaire</h3>
-          <div className="flex flex-wrap items-center gap-4">
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
             <ElevationToggle onChange={setShowElevation} initialValue={showElevation} />
             <div className="flex items-center space-x-3 text-sm font-medium">
-            <span className="text-blue-600">
+            <span className="text-indigo-600">
               Total: {totalVolume} km
             </span>
               {showElevation && (
@@ -540,7 +559,7 @@ export default function VolumeChart() {
         </div>
 
         {processingElevation && (
-            <div className="bg-yellow-50 border border-yellow-100 rounded p-2 mb-3 text-sm flex items-center">
+            <div className="bg-yellow-50 border-l-4 border-yellow-400 text-yellow-700 p-3 mb-3 text-sm flex items-center rounded-r-md">
               <svg className="animate-spin h-4 w-4 text-yellow-500 mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                 <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                 <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
@@ -549,7 +568,7 @@ export default function VolumeChart() {
             </div>
         )}
 
-        <div className="h-64">
+        <div className="h-80"> {/* Hauteur augmentée pour le graphique */}
           <Line data={chartData} options={chartOptions} />
         </div>
       </div>

@@ -192,18 +192,15 @@ export default function ActivityCalendar({ onDateSelect, onActivitySelect }: Act
         (today.getFullYear() - oldestActivityDate.getFullYear()) * 12 +
         (today.getMonth() - oldestActivityDate.getMonth());
 
-    // Ajouter d'abord le mois actuel et les 3 mois futurs
-    for (let i = 0; i <= 3; i++) {
-      const date = new Date(today.getFullYear(), today.getMonth() + i, 1);
-      const monthName = date.toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' });
-      const value = `${date.getFullYear()}-${date.getMonth()}`;
+    // Générer les options pour chaque mois, du plus ancien au plus récent
+    for (let i = 0; i <= monthsFromOldest; i++) {
+      // Commencer par le mois le plus ancien et avancer jusqu'au mois actuel
+      const date = new Date(
+        oldestActivityDate.getFullYear(),
+        oldestActivityDate.getMonth() + i,
+        1
+      );
 
-      options.push({ value, label: monthName });
-    }
-
-    // Ensuite ajouter les mois passés depuis la première activité
-    for (let i = 1; i <= monthsFromOldest; i++) {
-      const date = new Date(today.getFullYear(), today.getMonth() - i, 1);
       const monthName = date.toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' });
       const value = `${date.getFullYear()}-${date.getMonth()}`;
 
@@ -269,25 +266,29 @@ export default function ActivityCalendar({ onDateSelect, onActivitySelect }: Act
 
   if (isLoading) {
     return (
-        <div className="flex justify-center items-center py-8">
-          <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-indigo-500"></div>
-          <span className="ml-2">Chargement des activités...</span>
+        <div className="flex justify-center items-center py-8 h-80 w-80 bg-white rounded-lg shadow-md border border-gray-200">
+          <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-indigo-600"></div>
+          <span className="ml-3 text-gray-600">Chargement...</span>
         </div>
     );
   }
 
   if (error && !selectedActivity) {
     return (
-        <div className="p-4 bg-red-100 border border-red-400 text-red-700 rounded mb-4">
-          {error}
+        <div className="p-4 bg-red-50 border border-red-300 text-red-700 rounded-lg shadow-sm mb-4 h-80 w-80 flex flex-col justify-center items-center">
+          <svg className="w-12 h-12 text-red-400 mb-3" fill="none" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" viewBox="0 0 24 24" stroke="currentColor"><path d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+          <p className="font-medium mb-1">Erreur de chargement</p>
+          <p className="text-xs text-center">{error}</p>
         </div>
     );
   }
 
   if (activities.length === 0) {
     return (
-        <div className="p-4 bg-yellow-100 border border-yellow-400 text-yellow-700 rounded mb-4">
-          Aucune activité trouvée. Veuillez d&apos;abord synchroniser vos données Garmin.
+        <div className="p-4 bg-yellow-50 border border-yellow-300 text-yellow-700 rounded-lg shadow-sm mb-4 h-80 w-80 flex flex-col justify-center items-center">
+            <svg className="w-12 h-12 text-yellow-400 mb-3" fill="none" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" viewBox="0 0 24 24" stroke="currentColor"><path d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+            <p className="font-medium mb-1">Aucune activité</p>
+            <p className="text-xs text-center">Veuillez synchroniser vos données Garmin.</p>
         </div>
     );
   }
@@ -295,15 +296,15 @@ export default function ActivityCalendar({ onDateSelect, onActivitySelect }: Act
   return (
       <>
         {error && (
-            <div className="p-2 bg-red-100 border border-red-400 text-red-700 rounded mb-2 text-xs">
+            <div className="p-2 bg-red-50 border border-red-300 text-red-700 rounded-lg mb-2 text-xs shadow-sm">
               {error}
             </div>
         )}
 
         <div className="grid grid-cols-1 gap-6">
           {/* Calendrier compact */}
-          <div className="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden w-80 h-auto">
-            <div className="p-3 border-b border-gray-100 bg-gray-50 flex justify-between items-center">
+          <div className="bg-white rounded-lg border border-gray-200 shadow-md overflow-hidden w-80 h-auto">
+            <div className="p-3 border-b border-gray-200 bg-gray-50 flex justify-between items-center">
               <h3 className="font-semibold text-gray-700 text-sm">Calendrier des activités</h3>
               <div className="flex items-center space-x-1">
                 <button
@@ -312,17 +313,17 @@ export default function ActivityCalendar({ onDateSelect, onActivitySelect }: Act
                       newDate.setMonth(currentDate.getMonth() - 1);
                       setCurrentDate(newDate);
                     }}
-                    className="p-0.5 rounded hover:bg-gray-100 text-gray-600"
+                    className="p-1 rounded-md hover:bg-gray-200 text-gray-600 transition-colors"
                     title="Mois précédent"
                 >
-                  &larr;
+                  <svg className="w-4 h-4" fill="none" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" viewBox="0 0 24 24" stroke="currentColor"><path d="M15 19l-7-7 7-7"></path></svg>
                 </button>
 
                 <div className="relative">
                   <select
                       value={`${currentDate.getFullYear()}-${currentDate.getMonth()}`}
                       onChange={handleMonthChange}
-                      className="px-1 py-0.5 border border-gray-200 rounded bg-white text-xs focus:outline-none focus:ring-1 focus:ring-indigo-500 appearance-none w-full text-center"
+                      className="px-2 py-1 border border-gray-300 rounded-md bg-white text-xs font-medium text-gray-700 focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 appearance-none w-full text-center shadow-sm"
                   >
                     {getMonthOptions().map(option => (
                         <option key={option.value} value={option.value}>
@@ -338,57 +339,57 @@ export default function ActivityCalendar({ onDateSelect, onActivitySelect }: Act
                       newDate.setMonth(currentDate.getMonth() + 1);
                       setCurrentDate(newDate);
                     }}
-                    className="p-0.5 rounded hover:bg-gray-100 text-gray-600"
+                    className="p-1 rounded-md hover:bg-gray-200 text-gray-600 transition-colors"
                     title="Mois suivant"
                 >
-                  &rarr;
+                  <svg className="w-4 h-4" fill="none" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" viewBox="0 0 24 24" stroke="currentColor"><path d="M9 5l7 7-7 7"></path></svg>
                 </button>
 
                 <button
                     onClick={goToCurrentMonth}
-                    className="ml-1 text-[10px] bg-indigo-100 text-indigo-700 px-1 py-0.5 rounded hover:bg-indigo-200"
+                    className="ml-1 text-xs bg-indigo-500 hover:bg-indigo-600 text-white font-semibold px-2 py-1 rounded-md shadow-sm transition-colors"
                 >
                   Auj.
                 </button>
               </div>
             </div>
 
-            <div className="p-2 aspect-square">
+            <div className="p-3">
               {/* Jours de la semaine */}
-              <div className="grid grid-cols-7 gap-0 mb-1 text-center">
+              <div className="grid grid-cols-7 gap-1 mb-2 text-center">
                 {['L', 'Ma', 'Me', 'J', 'V', 'S', 'D'].map((day, index) => (
-                    <div key={index} className="text-[10px] font-medium text-gray-500">
+                    <div key={index} className="text-xs font-medium text-gray-500">
                       {day}
                     </div>
                 ))}
               </div>
 
               {/* Grille du calendrier plus large */}
-              <div className="grid grid-cols-7 gap-0 aspect-square">
+              <div className="grid grid-cols-7 gap-1">
                 {calendarGrid.map((day, index) => {
                   const isSelectedActivity = isSelectedActivityDate(day.date);
+                  const isSelected = selectedDate &&
+                                     selectedDate.getDate() === day.date.getDate() &&
+                                     selectedDate.getMonth() === day.date.getMonth() &&
+                                     selectedDate.getFullYear() === day.date.getFullYear();
 
                   return (
                       <div
                           key={index}
                           onClick={(e) => handleDateClick(day, e)}
                           className={`
-                      relative w-9 h-9 flex items-center justify-center text-xs rounded transition-all duration-200
-                      ${day.isCurrentMonth ? 'bg-white' : 'bg-gray-50 text-gray-400'}
-                      ${day.isToday ? 'font-bold text-indigo-700' : ''}
-                      ${day.activities.length > 0 ? 'cursor-pointer hover:bg-indigo-50' : ''}
+                      relative w-9 h-9 flex items-center justify-center text-xs rounded-lg transition-all duration-150 ease-in-out
+                      ${day.isCurrentMonth ? 'text-gray-700' : 'text-gray-400 bg-gray-50'}
+                      ${day.isToday ? 'font-bold text-indigo-600 bg-indigo-50' : ''}
+                      ${day.activities.length > 0 ? 'cursor-pointer hover:bg-indigo-100' : 'cursor-default'}
                       ${isSelectedActivity
-                              ? '!bg-blue-600 !text-white !ring-2 !ring-blue-600 !font-bold shadow-md'
-                              : day.activities.length > 0
-                                  ? 'ring-1 ring-indigo-300'
-                                  : ''
+                              ? 'bg-indigo-600 text-white ring-2 ring-indigo-400 font-semibold shadow-lg'
+                              : day.activities.length > 0 && day.isCurrentMonth
+                                  ? 'bg-indigo-50 ring-1 ring-indigo-300'
+                                  : day.activities.length > 0 ? 'bg-gray-100 ring-1 ring-gray-300' : ''
                           }
-                      ${selectedDate &&
-                          selectedDate.getDate() === day.date.getDate() &&
-                          selectedDate.getMonth() === day.date.getMonth() &&
-                          selectedDate.getFullYear() === day.date.getFullYear() &&
-                          !isSelectedActivity
-                              ? '!bg-indigo-100 !text-indigo-800 !ring-2 !ring-indigo-300 !font-bold'
+                      ${isSelected && !isSelectedActivity
+                              ? 'bg-blue-100 text-blue-700 ring-2 ring-blue-300 font-semibold'
                               : ''}
                     `}
                       >
@@ -396,14 +397,14 @@ export default function ActivityCalendar({ onDateSelect, onActivitySelect }: Act
 
                         {day.activities.length > 0 && !isSelectedActivity && (
                             <span
-                                className="absolute bottom-0.5 left-1/2 transform -translate-x-1/2 w-1 h-1 bg-blue-500 rounded-full"
+                                className={`absolute bottom-1 left-1/2 transform -translate-x-1/2 w-1.5 h-1.5 rounded-full ${day.isCurrentMonth ? 'bg-blue-500' : 'bg-gray-400'}`}
                                 title={`${day.activities.length} activité(s)`}
                             />
                         )}
 
                         {day.activities.length > 0 && isSelectedActivity && (
                             <span
-                                className="absolute bottom-0.5 left-1/2 transform -translate-x-1/2 w-1.5 h-1.5 bg-white rounded-full"
+                                className="absolute bottom-1 left-1/2 transform -translate-x-1/2 w-1.5 h-1.5 bg-white rounded-full"
                                 title={`${day.activities.length} activité(s) - Activité sélectionnée`}
                             />
                         )}
@@ -418,33 +419,37 @@ export default function ActivityCalendar({ onDateSelect, onActivitySelect }: Act
         {/* Popup pour sélection d'activités */}
         {showPopup && selectedDate && (
             <div
-                className="fixed bg-white shadow-lg rounded-md border border-gray-200 z-50 p-1"
-                style={{ top: `${popupPosition.y}px`, left: `${popupPosition.x}px`, maxWidth: '250px' }}
+                className="fixed bg-white shadow-xl rounded-lg border border-gray-300 z-50 p-2"
+                style={{ top: `${popupPosition.y + 5}px`, left: `${popupPosition.x}px`, minWidth: '200px', maxWidth: '280px' }}
             >
-              <div className="p-2 border-b">
-                <h3 className="font-medium text-xs">
+              <div className="flex justify-between items-center pb-2 mb-2 border-b border-gray-200">
+                <h3 className="font-semibold text-sm text-gray-800">
                   Activités du {selectedDate.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' })}
                 </h3>
                 <button
                     onClick={() => setShowPopup(false)}
-                    className="absolute top-1 right-1 text-gray-500 hover:text-gray-700 text-xs"
+                    className="text-gray-400 hover:text-gray-600 transition-colors p-1 rounded-full"
+                    title="Fermer"
                 >
-                  ✕
+                  <svg className="w-4 h-4" fill="none" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" viewBox="0 0 24 24" stroke="currentColor"><path d="M6 18L18 6M6 6l12 12"></path></svg>
                 </button>
               </div>
-              <ul className="max-h-48 overflow-y-auto">
+              <ul className="max-h-48 overflow-y-auto space-y-1">
                 {selectedDate && getActivitiesForDate(selectedDate, activities).map(activity => (
                     <li
                         key={activity.id}
                         onClick={() => handleSelectActivity(activity)}
-                        className="p-2 hover:bg-gray-100 cursor-pointer text-xs"
+                        className="p-2 hover:bg-indigo-50 rounded-md cursor-pointer transition-colors"
                     >
-                      <div className="font-medium truncate">{activity.activity_name}</div>
-                      <div className="text-[10px] text-gray-500">
-                        {formatTime(activity.start_time)} - {activity.activity_type}
+                      <div className="font-medium text-sm text-gray-800 truncate">{activity.activity_name}</div>
+                      <div className="text-xs text-gray-500">
+                        {formatTime(activity.start_time)} - <span className="font-medium">{activity.activity_type}</span>
                       </div>
                     </li>
                 ))}
+                {getActivitiesForDate(selectedDate, activities).length === 0 && (
+                    <li className="p-2 text-sm text-gray-500 text-center">Aucune activité ce jour.</li>
+                )}
               </ul>
             </div>
         )}

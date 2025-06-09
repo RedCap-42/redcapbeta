@@ -37,9 +37,7 @@ export async function extractElevationGain(fileBuffer: ArrayBuffer): Promise<num
         lengthUnit: 'km',
         elapsedRecordField: true,
         mode: 'list',
-      });
-
-      // Utiliser l'API basée sur les événements
+      });      // Utiliser l'API basée sur les événements
       fitParser.on('data', (data: FitData) => {
         try {
           // Extraire les données d'élévation des records
@@ -75,7 +73,7 @@ export async function extractElevationGain(fileBuffer: ArrayBuffer): Promise<num
         reject(error);
       });
 
-      // Lancer le parsing
+      // Lancer l'analyse
       fitParser.parse(fileBuffer);
     } catch (err) {
       console.error('Erreur lors de l\'initialisation du FitParser:', err);

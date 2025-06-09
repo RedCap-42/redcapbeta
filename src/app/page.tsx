@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
 import { useRouter } from 'next/navigation';
 import Auth from '@/components/Auth';
+import { retryWithBackoff } from '@/utils/retryWithBackoff';
 
 export default function Home() {
   const [isLoading, setIsLoading] = useState(true);
@@ -15,10 +16,28 @@ export default function Home() {
     const checkSession = async () => {
       try {
         console.log('Home: Vérification de la session');
-        const { data: { session }, error } = await supabase.auth.getSession();
+        
+        // Utiliser retryWithBackoff pour gérer les rate limits
+        const { data: { session }, error } = await retryWithBackoff(
+          () => supabase.auth.getSession(),
+          2, // Maximum 2 retries
+          1000 // Délai de base de 1 seconde
+        );
         
         if (error) {
           console.error('Home: Erreur lors de la vérification de la session:', error.message);
+          
+          // Si c'est une erreur de rate limit, on affiche quand même le formulaire de connexion
+          if (error.message.includes('rate limit') || error.message.includes('429')) {
+            console.log('Home: Rate limit détecté, affichage du formulaire de connexion');
+            setIsAuthenticated(false);
+            setIsLoading(false);
+            return;
+          }
+          
+          // Pour les autres erreurs, on affiche aussi le formulaire
+          setIsAuthenticated(false);
+          setIsLoading(false);
           return;
         }
 
@@ -31,14 +50,26 @@ export default function Home() {
           console.log('Home: Aucune session trouvée, affichage du formulaire de connexion');
           setIsAuthenticated(false);
         }
-      } catch (error) {
+      } catch (error: unknown) {
         console.error('Home: Erreur inattendue:', error);
+        
+        // Si c'est un rate limit, afficher le formulaire de connexion quand même
+        if ((error as Error).message?.includes('rate limit') || (error as { status?: number }).status === 429) {
+          console.log('Home: Rate limit final, affichage du formulaire');
+          setIsAuthenticated(false);
+        } else {
+          // Pour les autres erreurs, afficher le formulaire de connexion
+          setIsAuthenticated(false);
+        }
       } finally {
         setIsLoading(false);
       }
     };
 
-    checkSession();
+    // Ajouter un délai plus long pour éviter les appels trop fréquents et réduire le rate limiting
+    const timeoutId = setTimeout(checkSession, 500);
+    
+    return () => clearTimeout(timeoutId);
   }, [supabase, router]);
 
   if (isLoading) {

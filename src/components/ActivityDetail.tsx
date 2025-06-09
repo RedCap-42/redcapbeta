@@ -46,60 +46,70 @@ export default function ActivityDetail({ activity, onAnalyze }: ActivityDetailPr
 
   if (!activity) {
     return (
-      <div className="bg-white rounded-lg shadow p-4 w-72 h-[350px] flex flex-col justify-center items-center">
-        <p className="text-gray-500 text-center">Sélectionnez une date avec une activité dans le calendrier</p>
+      <div className="bg-white rounded-lg shadow-md border border-gray-200 p-6 w-72 h-[360px] flex flex-col justify-center items-center">
+        <svg className="w-16 h-16 text-gray-400 mb-4" fill="none" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" viewBox="0 0 24 24" stroke="currentColor">
+          <path d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+        </svg>
+        <p className="text-gray-500 text-center text-sm">Sélectionnez une date avec une activité dans le calendrier pour voir les détails.</p>
       </div>
     );
   }
 
   return (
-    <div className="bg-white rounded-lg shadow w-72">
-      <div className="p-4 border-b border-gray-100 bg-gray-50">
-        <h3 className="font-semibold text-gray-700">Détails de l&apos;activité</h3>
+    <div className="bg-white rounded-lg shadow-md border border-gray-200 w-72">
+      <div className="p-3 border-b border-gray-200 bg-gray-50">
+        <h3 className="font-semibold text-gray-700 text-sm">Détails de l&apos;activité</h3>
       </div>
 
-      <div className="p-4">
-        <div className="flex items-center justify-between mb-4">
-          <h4 className="font-semibold text-base truncate">{activity.name}</h4>
-          <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">
+      <div className="p-4 space-y-3">
+        <div className="flex items-center justify-between">
+          <h4 className="font-semibold text-base text-gray-800 truncate pr-2" title={activity.name}>{activity.name}</h4>
+          <span className="text-xs bg-indigo-100 text-indigo-700 px-2 py-1 rounded-full font-medium">
             {activity.sport_type}
           </span>
         </div>
 
-        <div className="space-y-3">
+        <div className="grid grid-cols-2 gap-x-3 gap-y-2 text-sm">
           <div>
-            <p className="text-xs text-gray-500 mb-1">Date</p>
-            <p className="text-sm font-medium">
-              {new Date(activity.start_time).toLocaleDateString('fr-FR')}
+            <p className="text-xs text-gray-500">Date</p>
+            <p className="font-medium text-gray-700">
+              {new Date(activity.start_time).toLocaleDateString('fr-FR', {day: '2-digit', month: 'short', year: 'numeric'})}
             </p>
           </div>
 
           <div>
-            <p className="text-xs text-gray-500 mb-1">Heure</p>
-            <p className="text-sm font-medium">{formatTime(activity.start_time)}</p>
+            <p className="text-xs text-gray-500">Heure</p>
+            <p className="font-medium text-gray-700">{formatTime(activity.start_time)}</p>
           </div>
 
           <div>
-            <p className="text-xs text-gray-500 mb-1">Durée</p>
-            <p className="text-sm font-medium">{formatDuration(activity.duration)}</p>
+            <p className="text-xs text-gray-500">Durée</p>
+            <p className="font-medium text-gray-700">{formatDuration(activity.duration)}</p>
           </div>
 
           <div>
-            <p className="text-xs text-gray-500 mb-1">Distance</p>
-            <p className="text-sm font-medium">{formatDistance(activity.distance)} km</p>
+            <p className="text-xs text-gray-500">Distance</p>
+            <p className="font-medium text-gray-700">{formatDistance(activity.distance)} km</p>
           </div>
 
-          {onAnalyze && (
-            <div className="mt-4 pt-4 border-t border-gray-100">
-              <button
-                onClick={onAnalyze}
-                className="w-full py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm rounded-md transition-colors"
-              >
-                Analyser cette activité
-              </button>
+          {activity.elevation_gain !== null && activity.elevation_gain !== undefined && (
+            <div className="col-span-2">
+              <p className="text-xs text-gray-500">Dénivelé+</p>
+              <p className="font-medium text-gray-700">{activity.elevation_gain} m</p>
             </div>
           )}
         </div>
+
+        {onAnalyze && (
+          <div className="pt-3 mt-2 border-t border-gray-200">
+            <button
+              onClick={onAnalyze}
+              className="w-full py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold rounded-md shadow-sm transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
+            >
+              Analyser cette activité
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );
