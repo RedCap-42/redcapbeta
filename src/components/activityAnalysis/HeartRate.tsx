@@ -166,10 +166,10 @@ export default function HeartRate({ activity }: HeartRateProps) {
         return;
       }
 
-      console.log(`Analyse du fichier FIT récupéré via le chemin: ${usedPath}`);
+      console.log(`Analyse du fichier FIT récupéré via le chemin: ${usedPath}`);      // Convertir le blob en ArrayBuffer
+      const arrayBuffer = await fitData.arrayBuffer();
 
-      // Convertir le blob en ArrayBuffer
-      const arrayBuffer = await fitData.arrayBuffer();      // Parser le fichier FIT
+      // Parser le fichier FIT
       const fitParser = new FitParser({
         force: true,
         speedUnit: 'm/s',
@@ -178,77 +178,75 @@ export default function HeartRate({ activity }: HeartRateProps) {
         mode: 'list',
       });
 
-      // Gérer les données reçues
-      fitParser.on('data', (data: FitData) => {
-        try {
-          console.log('Données FIT reçues:', Object.keys(data));
-          
-          // Extraire les données de records pour la fréquence cardiaque
-          const heartRatePoints: HeartRateDataPoint[] = [];
-          let lastDistance = 0;
-
-          if (data.records && Array.isArray(data.records)) {
-            console.log(`Nombre de records trouvés: ${data.records.length}`);
+      // Utiliser un cast de type pour indiquer à TypeScript que parse peut accepter un callback
+      (fitParser.parse as (content: ArrayBuffer, callback: (err: Error, data: FitData) => void) => void)(
+        arrayBuffer,
+        (parseError: Error, data: FitData) => {
+          if (parseError) {
+            console.error('Erreur lors du parsing du fichier FIT:', parseError);
+            setError('Erreur lors de l\'analyse du fichier FIT');
+            setLoading(false);
+            return;
+          }          try {
+            console.log('Données FIT reçues:', Object.keys(data));
             
-            data.records.forEach((record: FitRecord, index: number) => {
-              const heartRate = record.heart_rate;
-              const distance = record.enhanced_distance || record.distance;
-              const speed = record.enhanced_speed || record.speed;
+            // Extraire les données de records pour la fréquence cardiaque
+            const heartRatePoints: HeartRateDataPoint[] = [];
+            let lastDistance = 0;
 
-              // Méthode 1: Utiliser la distance cumulée si disponible
-              if (distance !== undefined && distance > 0 && heartRate !== undefined && heartRate > 0) {
-                const distanceInKm = distance / 1000;
-                
-                // Filtrer les valeurs aberrantes (fréquence cardiaque réaliste)
-                if (heartRate > 40 && heartRate < 220) { // Entre 40 et 220 bpm
-                  heartRatePoints.push({
-                    distance: distanceInKm,
-                    heartRate: heartRate
-                  });
+            if (data.records && Array.isArray(data.records)) {
+              console.log(`Nombre de records trouvés: ${data.records.length}`);
+              
+              data.records.forEach((record: FitRecord, index: number) => {
+                const heartRate = record.heart_rate;
+                const distance = record.enhanced_distance || record.distance;
+                const speed = record.enhanced_speed || record.speed;
+
+                // Méthode 1: Utiliser la distance cumulée si disponible
+                if (distance !== undefined && distance > 0 && heartRate !== undefined && heartRate > 0) {
+                  const distanceInKm = distance / 1000;
+                  
+                  // Filtrer les valeurs aberrantes (fréquence cardiaque réaliste)
+                  if (heartRate > 40 && heartRate < 220) { // Entre 40 et 220 bpm
+                    heartRatePoints.push({
+                      distance: distanceInKm,
+                      heartRate: heartRate
+                    });
+                  }
+                  lastDistance = distance;
+                } 
+                // Méthode 2: Utiliser la vitesse pour estimer la distance si pas de distance cumulée
+                else if (heartRate !== undefined && heartRate > 0 && speed !== undefined && speed > 0 && index > 0) {
+                  // Estimer l'intervalle de temps (généralement 1 seconde)
+                  const timeInterval = 1; // Par défaut 1 seconde
+                  
+                  // Calculer la distance parcourue dans cet intervalle
+                  const distanceDelta = speed * timeInterval;
+                  lastDistance += distanceDelta;
+                  
+                  const distanceInKm = lastDistance / 1000;
+                  
+                  // Filtrer les valeurs aberrantes
+                  if (heartRate > 40 && heartRate < 220) {
+                    heartRatePoints.push({
+                      distance: distanceInKm,
+                      heartRate: heartRate
+                    });
+                  }
                 }
-                lastDistance = distance;
-              } 
-              // Méthode 2: Utiliser la vitesse pour estimer la distance si pas de distance cumulée
-              else if (heartRate !== undefined && heartRate > 0 && speed !== undefined && speed > 0 && index > 0) {
-                // Estimer l'intervalle de temps (généralement 1 seconde)
-                const timeInterval = 1; // Par défaut 1 seconde
-                
-                // Calculer la distance parcourue dans cet intervalle
-                const distanceDelta = speed * timeInterval;
-                lastDistance += distanceDelta;
-                
-                const distanceInKm = lastDistance / 1000;
-                
-                // Filtrer les valeurs aberrantes
-                if (heartRate > 40 && heartRate < 220) {
-                  heartRatePoints.push({
-                    distance: distanceInKm,
-                    heartRate: heartRate
-                  });
-                }
-              }
-            });
+              });
+            }
+
+            console.log(`Points de fréquence cardiaque extraits: ${heartRatePoints.length}`);
+            setHeartRateData(heartRatePoints);
+            setLoading(false);
+          } catch (err) {
+            console.error('Erreur lors de l\'extraction des données de fréquence cardiaque:', err);
+            setError('Erreur lors du traitement des données');
+            setLoading(false);
           }
-
-          console.log(`Points de fréquence cardiaque extraits: ${heartRatePoints.length}`);
-          setHeartRateData(heartRatePoints);
-          setLoading(false);
-        } catch (err) {
-          console.error('Erreur lors de l\'extraction des données de fréquence cardiaque:', err);
-          setError('Erreur lors du traitement des données');
-          setLoading(false);
         }
-      });
-
-      // Gérer les erreurs
-      fitParser.on('error', (parseError: Error) => {
-        console.error('Erreur lors du parsing du fichier FIT:', parseError);
-        setError('Erreur lors de l\'analyse du fichier FIT');
-        setLoading(false);
-      });
-
-      // Lancer l'analyse
-      fitParser.parse(arrayBuffer);
+      );
     } catch (err) {
       console.error('Erreur:', err);
       setError(err instanceof Error ? err.message : 'Erreur inconnue');
