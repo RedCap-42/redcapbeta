@@ -37,44 +37,45 @@ export async function extractElevationGain(fileBuffer: ArrayBuffer): Promise<num
         lengthUnit: 'km',
         elapsedRecordField: true,
         mode: 'list',
-      });      // Utiliser l'API basée sur les événements
-      fitParser.on('data', (data: FitData) => {
-        try {
-          // Extraire les données d'élévation des records
-          let totalElevationGain = 0;
-          let lastElevation: number | null = null;
+      });      // Utiliser l'API callback-based au lieu de l'API event-based
+      (fitParser.parse as (content: ArrayBuffer, callback: (err: Error, data: FitData) => void) => void)(
+        fileBuffer,
+        (parseError: Error, data: FitData) => {
+          if (parseError) {
+            console.error('Erreur lors du parsing du fichier FIT:', parseError);
+            reject(parseError);
+            return;
+          }
 
-          if (data.records && Array.isArray(data.records)) {
-            data.records.forEach((record: FitRecord) => {
-              // Si le record contient une donnée d'altitude
-              if (record.altitude !== undefined) {
-                if (lastElevation !== null && record.altitude > lastElevation) {
-                  totalElevationGain += (record.altitude - lastElevation);
+          try {
+            // Extraire les données d'élévation des records
+            let totalElevationGain = 0;
+            let lastElevation: number | null = null;
+
+            if (data.records && Array.isArray(data.records)) {
+              data.records.forEach((record: FitRecord) => {
+                // Si le record contient une donnée d'altitude
+                if (record.altitude !== undefined) {
+                  if (lastElevation !== null && record.altitude > lastElevation) {
+                    totalElevationGain += (record.altitude - lastElevation);
+                  }
+                  lastElevation = record.altitude;
                 }
-                lastElevation = record.altitude;
-              }
-            });
-          }
+              });
+            }
 
-          // Alternative : utiliser la session summary si disponible
-          if (totalElevationGain === 0 && data.sessions && data.sessions[0] && data.sessions[0].total_ascent) {
-            totalElevationGain = data.sessions[0].total_ascent;
-          }
+            // Alternative : utiliser la session summary si disponible
+            if (totalElevationGain === 0 && data.sessions && data.sessions[0] && data.sessions[0].total_ascent) {
+              totalElevationGain = data.sessions[0].total_ascent;
+            }
 
-          resolve(Math.round(totalElevationGain));
-        } catch (err) {
-          console.error('Erreur lors de l\'extraction des données d\'élévation:', err);
-          reject(err);
+            resolve(Math.round(totalElevationGain));
+          } catch (err) {
+            console.error('Erreur lors de l\'extraction des données d\'élévation:', err);
+            reject(err);
+          }
         }
-      });
-
-      fitParser.on('error', (error: Error) => {
-        console.error('Erreur lors du parsing du fichier FIT:', error);
-        reject(error);
-      });
-
-      // Lancer l'analyse
-      fitParser.parse(fileBuffer);
+      );
     } catch (err) {
       console.error('Erreur lors de l\'initialisation du FitParser:', err);
       reject(err);

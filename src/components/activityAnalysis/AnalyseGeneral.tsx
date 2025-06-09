@@ -107,8 +107,7 @@ export default function AnalyseGeneral({ activity }: AnalyseGeneralProps) {
     return Math.round(totalGain);
   }, []);
   // Fonction pour analyser et traiter les données du fichier FIT
-  const parseAndProcessFitFile = useCallback((arrayBuffer: ArrayBuffer) => {
-    // Analyser le fichier FIT
+  const parseAndProcessFitFile = useCallback((arrayBuffer: ArrayBuffer) => {    // Analyser le fichier FIT
     const fitParser = new FitParser({
       force: true,
       speedUnit: 'km/h',
@@ -118,76 +117,76 @@ export default function AnalyseGeneral({ activity }: AnalyseGeneralProps) {
       mode: 'list',
     });
 
-    // Gérer les données reçues
-    fitParser.on('data', (data: FitData) => {
-      console.log('Données FIT analysées:', Object.keys(data));
+    // Utiliser l'API callback-based au lieu de l'API event-based
+    (fitParser.parse as (content: ArrayBuffer, callback: (err: Error, data: FitData) => void) => void)(
+      arrayBuffer,
+      (parseError: Error, data: FitData) => {
+        if (parseError) {
+          console.error('Erreur lors de l\'analyse du fichier FIT:', parseError);
+          setError("Erreur lors de l'analyse des données");
+          return;
+        }
 
-      // Extraire les données de fréquence cardiaque
-      let avgHr: number | null = null;
-      let maxHr: number | null = null;
-      let calculatedElevationGain: number | null = null;
+        console.log('Données FIT analysées:', Object.keys(data));
 
-      // Chercher le D+ dans les sessions
-      if (data.sessions && data.sessions.length > 0) {
-        const session = data.sessions[0];
-        avgHr = session.avg_heart_rate ?? null;
-        maxHr = session.max_heart_rate ?? null;
+        // Extraire les données de fréquence cardiaque
+        let avgHr: number | null = null;
+        let maxHr: number | null = null;
+        let calculatedElevationGain: number | null = null;
 
-        // Vérifier si le dénivelé est disponible dans la session
-        if (session.total_ascent !== undefined) {
-          calculatedElevationGain = session.total_ascent;
-          console.log('Dénivelé positif trouvé dans la session:', calculatedElevationGain);
+        // Chercher le D+ dans les sessions
+        if (data.sessions && data.sessions.length > 0) {
+          const session = data.sessions[0];
+          avgHr = session.avg_heart_rate ?? null;
+          maxHr = session.max_heart_rate ?? null;
+
+          // Vérifier si le dénivelé est disponible dans la session
+          if (session.total_ascent !== undefined) {
+            calculatedElevationGain = session.total_ascent;
+            console.log('Dénivelé positif trouvé dans la session:', calculatedElevationGain);
+          }
+        }
+
+        // Si le D+ n'est pas dans les sessions, essayer de le calculer à partir des records
+        if (calculatedElevationGain === null && data.records && data.records.length > 0) {
+          const altitudePoints = data.records
+            .filter((record: FitRecord) => record.altitude !== undefined && record.altitude !== null)
+            .map((record: FitRecord) => record.altitude as number);
+
+          if (altitudePoints.length > 0) {
+            calculatedElevationGain = calculateElevationGain(altitudePoints);
+            console.log('Dénivelé positif calculé à partir des points:', calculatedElevationGain, 'Nombre de points:', altitudePoints.length);
+          }
+        }
+
+        // Mettre à jour le dénivelé positif s'il a été trouvé ou calculé
+        if (calculatedElevationGain !== null) {
+          setElevationGain(calculatedElevationGain);
+        }
+
+        // Si pas trouvé dans les sessions, chercher dans les records
+        if ((!avgHr || !maxHr) && data.records && data.records.length > 0) {
+          const heartRates = data.records
+            .filter((record: FitRecord) => record.heart_rate)
+            .map((record: FitRecord) => record.heart_rate!);
+
+          if (heartRates.length > 0) {
+            avgHr = Math.round(heartRates.reduce((sum: number, hr: number) => sum + hr, 0) / heartRates.length);
+            maxHr = Math.max(...heartRates);
+          }
+        }
+
+        setHeartRate({
+          average: avgHr,
+          max: maxHr,
+        });
+
+        // Calculer l'allure moyenne
+        if (activity.distance && activity.duration) {
+          setCalculatedPace(formatPace(activity.distance, activity.duration));
         }
       }
-
-      // Si le D+ n'est pas dans les sessions, essayer de le calculer à partir des records
-      if (calculatedElevationGain === null && data.records && data.records.length > 0) {
-        const altitudePoints = data.records
-          .filter((record: FitRecord) => record.altitude !== undefined && record.altitude !== null)
-          .map((record: FitRecord) => record.altitude as number);
-
-        if (altitudePoints.length > 0) {
-          calculatedElevationGain = calculateElevationGain(altitudePoints);
-          console.log('Dénivelé positif calculé à partir des points:', calculatedElevationGain, 'Nombre de points:', altitudePoints.length);
-        }
-      }
-
-      // Mettre à jour le dénivelé positif s'il a été trouvé ou calculé
-      if (calculatedElevationGain !== null) {
-        setElevationGain(calculatedElevationGain);
-      }
-
-      // Si pas trouvé dans les sessions, chercher dans les records
-      if ((!avgHr || !maxHr) && data.records && data.records.length > 0) {
-        const heartRates = data.records
-          .filter((record: FitRecord) => record.heart_rate)
-          .map((record: FitRecord) => record.heart_rate!);
-
-        if (heartRates.length > 0) {
-          avgHr = Math.round(heartRates.reduce((sum: number, hr: number) => sum + hr, 0) / heartRates.length);
-          maxHr = Math.max(...heartRates);
-        }
-      }
-
-      setHeartRate({
-        average: avgHr,
-        max: maxHr,
-      });
-
-      // Calculer l'allure moyenne
-      if (activity.distance && activity.duration) {
-        setCalculatedPace(formatPace(activity.distance, activity.duration));
-      }
-    });
-
-    // Gérer les erreurs
-    fitParser.on('error', (error: Error) => {
-      console.error('Erreur lors de l\'analyse du fichier FIT:', error);
-      setError("Erreur lors de l'analyse des données");
-    });
-
-    // Lancer l'analyse
-    fitParser.parse(arrayBuffer);
+    );
   }, [activity.distance, activity.duration, calculateElevationGain, formatPace]);
 
   // Charger et analyser le fichier FIT pour extraire les données supplémentaires
