@@ -27,6 +27,8 @@ interface LinkShoesProps {
   onSuccess: () => void;
 }
 
+type SortType = 'date_desc' | 'date_asc' | 'type_classic' | 'type_trail';
+
 export const LinkShoes: React.FC<LinkShoesProps> = ({
   shoe,
   isOpen,
@@ -36,7 +38,9 @@ export const LinkShoes: React.FC<LinkShoesProps> = ({
   const [activities, setActivities] = useState<Activity[]>([]);
   const [selectedActivities, setSelectedActivities] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(false);
-  const [submitting, setSubmitting] = useState(false);  const { user } = useAuth();
+  const [submitting, setSubmitting] = useState(false);
+  const [sortType, setSortType] = useState<SortType>('date_desc');
+  const { user } = useAuth();
   const supabase = createClientComponentClient();
 
   const loadActivities = useCallback(async () => {
@@ -140,12 +144,34 @@ export const LinkShoes: React.FC<LinkShoesProps> = ({
       year: 'numeric'
     });
   };
-
   const formatDistance = (distance: number) => {
     return distance ? `${(distance / 1000).toFixed(2)} km` : '0 km';
   };
+
+  // Fonction pour trier les activités
+  const sortActivities = (activities: Activity[], sortType: SortType): Activity[] => {
+    const sorted = [...activities];
+    
+    switch (sortType) {
+      case 'date_desc':
+        return sorted.sort((a, b) => new Date(b.start_time).getTime() - new Date(a.start_time).getTime());
+      case 'date_asc':
+        return sorted.sort((a, b) => new Date(a.start_time).getTime() - new Date(b.start_time).getTime());
+      case 'type_classic':
+        return sorted.filter(activity => 
+          ['running', 'treadmill_running', 'indoor_running'].includes(activity.activity_type)
+        );
+      case 'type_trail':
+        return sorted.filter(activity => 
+          activity.activity_type === 'trail_running'
+        );
+      default:
+        return sorted;
+    }
+  };
+
   // Afficher toutes les activités avec leur statut
-  const allActivities = activities;
+  const allActivities = sortActivities(activities, sortType);
   return (
     <Modal isOpen={isOpen} onClose={onClose} title={`Lier des activités à ${shoe.name}`} size="xl">
       <div className="space-y-6">        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
@@ -172,24 +198,113 @@ export const LinkShoes: React.FC<LinkShoesProps> = ({
               </div>
             </div>
           </div>
-        </div>        {loading ? (
+        </div>        {/* Contrôles de tri */}
+        <div className="bg-white border border-gray-200 rounded-lg p-4">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <h4 className="text-sm font-medium text-gray-700">Trier les activités :</h4>
+              <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-600">
+                {activities.length} au total
+              </span>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <button
+                onClick={() => setSortType('date_desc')}
+                className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-colors ${
+                  sortType === 'date_desc'
+                    ? 'bg-blue-500 text-white'
+                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                }`}
+              >
+                Date ↓ (Récent → Ancien)
+              </button>
+              <button
+                onClick={() => setSortType('date_asc')}
+                className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-colors ${
+                  sortType === 'date_asc'
+                    ? 'bg-blue-500 text-white'
+                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                }`}
+              >
+                Date ↑ (Ancien → Récent)
+              </button>
+              <button
+                onClick={() => setSortType('type_classic')}
+                className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-colors ${
+                  sortType === 'type_classic'
+                    ? 'bg-green-500 text-white'
+                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                }`}
+              >
+                Course classique
+              </button>
+              <button
+                onClick={() => setSortType('type_trail')}
+                className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-colors ${
+                  sortType === 'type_trail'
+                    ? 'bg-orange-500 text-white'
+                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                }`}
+              >
+                Trail
+              </button>
+            </div>
+          </div>
+          
+          {/* Indicateur du nombre d'activités affichées */}
+          <div className="mt-3 text-xs text-gray-500">            {sortType.startsWith('type_') && (
+              <span>
+                {allActivities.length} activité{allActivities.length > 1 ? 's' : ''} 
+                {sortType === 'type_classic' ? ' de course classique' : ' de trail'} 
+                {' '}sur {activities.length} au total
+              </span>
+            )}            {sortType.startsWith('date_') && (
+              <span>
+                {allActivities.length} activité{allActivities.length > 1 ? 's' : ''} 
+                {' '}triée{allActivities.length > 1 ? 's' : ''} par date
+              </span>
+            )}
+          </div>
+        </div>
+
+        {loading ? (
           <div className="flex flex-col items-center justify-center py-16">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mb-4"></div>
             <p className="text-gray-600 text-lg">Chargement des activités...</p>
           </div>
         ) : (
           <div className="border border-gray-200 rounded-lg bg-gray-50 p-4">
-            <div className="max-h-[50vh] overflow-y-auto">
-              {allActivities.length === 0 ? (
+            <div className="max-h-[50vh] overflow-y-auto">              {allActivities.length === 0 ? (
                 <div className="text-center text-gray-500 py-16">
                   <svg className="mx-auto h-16 w-16 text-gray-400 mb-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                   </svg>
-                  <p className="text-xl font-medium text-gray-900 mb-3">Aucune activité trouvée</p>
-                  <p className="text-base text-gray-600 max-w-md mx-auto">
-                    Vos activités Garmin apparaîtront ici une fois synchronisées avec votre compte.
-                  </p>
-                </div>              ) : (
+                  {activities.length === 0 ? (
+                    <>
+                      <p className="text-xl font-medium text-gray-900 mb-3">Aucune activité trouvée</p>
+                      <p className="text-base text-gray-600 max-w-md mx-auto">
+                        Vos activités Garmin apparaîtront ici une fois synchronisées avec votre compte.
+                      </p>
+                    </>
+                  ) : (
+                    <>
+                      <p className="text-xl font-medium text-gray-900 mb-3">
+                        Aucune activité {sortType === 'type_classic' ? 'de course classique' : sortType === 'type_trail' ? 'de trail' : 'correspondante'}
+                      </p>
+                      <p className="text-base text-gray-600 max-w-md mx-auto">
+                        {sortType === 'type_classic' && 'Aucune activité de course classique (running, treadmill_running, indoor_running) trouvée.'}
+                        {sortType === 'type_trail' && 'Aucune activité de trail running trouvée.'}
+                        {sortType.startsWith('date_') && 'Aucune activité ne correspond aux critères de tri sélectionnés.'}
+                      </p>
+                      <button
+                        onClick={() => setSortType('date_desc')}
+                        className="mt-4 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
+                      >
+                        Voir toutes les activités
+                      </button>
+                    </>
+                  )}
+                </div>) : (
                 <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4">
                   {allActivities.map((activity: Activity) => {
                     const isLinkedToOtherShoe = activity.shoes && activity.shoes !== shoe.id;
