@@ -25,41 +25,41 @@ export default function ManualKmHistory({ shoeId, shoeName, isOpen, onClose, onU
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const supabase = createClientComponentClient();
-
-  const fetchManualKmEntries = async () => {
-    if (!isOpen || !shoeId) return;
-
-    try {
-      setIsLoading(true);
-      setError('');
-      
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        setError('Vous devez être connecté');
-        return;
-      }
-
-      const { data, error: fetchError } = await supabase
-        .from('manual_km')
-        .select('id, kilometers, title, description, activity_date, created_at')
-        .eq('shoe_id', shoeId)
-        .eq('user_id', user.id)
-        .order('activity_date', { ascending: false });
-
-      if (fetchError) {
-        throw fetchError;
-      }
-
-      setEntries(data || []);
-    } catch (err: unknown) {
-      setError((err as Error).message || 'Erreur lors du chargement de l\'historique');
-    } finally {
-      setIsLoading(false);
-    }
-  };
   useEffect(() => {
+    const fetchManualKmEntries = async () => {
+      if (!isOpen || !shoeId) return;
+
+      try {
+        setIsLoading(true);
+        setError('');
+        
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) {
+          setError('Vous devez être connecté');
+          return;
+        }
+
+        const { data, error: fetchError } = await supabase
+          .from('manual_km')
+          .select('id, kilometers, title, description, activity_date, created_at')
+          .eq('shoe_id', shoeId)
+          .eq('user_id', user.id)
+          .order('activity_date', { ascending: false });
+
+        if (fetchError) {
+          throw fetchError;
+        }
+
+        setEntries(data || []);
+      } catch (err: unknown) {
+        setError((err as Error).message || 'Erreur lors du chargement de l\'historique');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
     fetchManualKmEntries();
-  }, [isOpen, shoeId, fetchManualKmEntries]);
+  }, [isOpen, shoeId, supabase]);
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('fr-FR', {
@@ -75,8 +75,7 @@ export default function ManualKmHistory({ shoeId, shoeName, isOpen, onClose, onU
 
   const getTotalKilometers = () => {
     return entries.reduce((total, entry) => total + entry.kilometers, 0);
-  };
-  const handleDeleteEntry = async (entryId: string) => {
+  };  const handleDeleteEntry = async (entryId: string) => {
     if (!confirm('Êtes-vous sûr de vouloir supprimer cet ajout ?')) {
       return;
     }
@@ -95,8 +94,8 @@ export default function ManualKmHistory({ shoeId, shoeName, isOpen, onClose, onU
         throw deleteError;
       }
 
-      // Rafraîchir la liste
-      fetchManualKmEntries();
+      // Rafraîchir la liste en refiltrant les entrées localement
+      setEntries(prevEntries => prevEntries.filter(entry => entry.id !== entryId));
       // Notifier le parent pour mettre à jour les données des chaussures
       onUpdate?.();
     } catch (err: unknown) {
