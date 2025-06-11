@@ -24,7 +24,6 @@ interface EditShoesProps {
 export default function EditShoes({ isOpen, onClose, onShoesUpdated, shoe }: EditShoesProps) {
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
-  const [manualKilometers, setManualKilometers] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -33,7 +32,6 @@ export default function EditShoes({ isOpen, onClose, onShoesUpdated, shoe }: Edi
     if (shoe) {
       setName(shoe.name);
       setDescription(shoe.description || '');
-      setManualKilometers(shoe.manual_kilometers.toString());
     }
   }, [shoe]);
 
@@ -55,8 +53,7 @@ export default function EditShoes({ isOpen, onClose, onShoesUpdated, shoe }: Edi
       document.removeEventListener('keydown', handleEscape);
       document.body.style.overflow = 'unset';
     };
-  }, [isOpen, onClose]);
-  const handleSubmit = async (e: React.FormEvent) => {
+  }, [isOpen, onClose]);  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!shoe) return;
     
@@ -71,19 +68,11 @@ export default function EditShoes({ isOpen, onClose, onShoesUpdated, shoe }: Edi
         return;
       }
 
-      // Validation des kilomètres manuels
-      const manualKm = parseFloat(manualKilometers);
-      if (isNaN(manualKm) || manualKm < 0) {
-        setError('Le kilométrage manuel doit être un nombre positif');
-        return;
-      }
-
       const { error: updateError } = await supabase
         .from('shoes')
         .update({
           name: name.trim(),
           description: description.trim(),
-          manual_kilometers: manualKm,
           updated_at: new Date().toISOString()
         })
         .eq('id', shoe.id)
@@ -193,55 +182,26 @@ export default function EditShoes({ isOpen, onClose, onShoesUpdated, shoe }: Edi
                     placeholder="Décrivez votre chaussure (modèle, couleur, usage, spécificités...)"
                   />                </div>
 
-                {/* Kilométrage manuel - modifiable */}
-                <div>
-                  <label htmlFor="edit-manual-km" className="block text-sm font-semibold text-gray-700 mb-2">
-                    Kilométrage manuel (km) *
-                  </label>
-                  <div className="relative">
-                    <input
-                      type="number"
-                      id="edit-manual-km"
-                      value={manualKilometers}
-                      onChange={(e) => setManualKilometers(e.target.value)}
-                      min="0"
-                      step="0.1"
-                      required
-                      className="w-full px-4 py-3 border border-gray-300 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-all duration-200"
-                      placeholder="0.0"
-                    />
-                    <div className="absolute inset-y-0 right-0 flex items-center pr-3">
-                      <span className="text-gray-400 text-sm">km</span>
-                    </div>
-                  </div>
-                  <p className="mt-1 text-xs text-gray-500">
-                    Kilomètres ajoutés manuellement à cette chaussure
-                  </p>
-                </div>
-
-                {/* Information sur les autres kilomètres (lecture seule) */}
+                {/* Information sur les kilomètres (lecture seule) */}
                 {shoe && (
                   <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                    <h4 className="text-sm font-medium text-blue-800 mb-2">Autres informations de kilométrage</h4>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
+                    <h4 className="text-sm font-medium text-blue-800 mb-2">Informations de kilométrage</h4>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-sm">
+                      <div>
+                        <span className="text-blue-600 font-medium">Manuel:</span>
+                        <span className="ml-2 font-semibold">{shoe.manual_kilometers.toFixed(1)} km</span>
+                      </div>
                       <div>
                         <span className="text-green-600 font-medium">Auto:</span>
                         <span className="ml-2 font-semibold">{shoe.auto_kilometers.toFixed(1)} km</span>
                       </div>
                       <div>
-                        <span className="text-purple-600 font-medium">Total actuel:</span>
+                        <span className="text-purple-600 font-medium">Total:</span>
                         <span className="ml-2 font-bold">{shoe.total_kilometers.toFixed(1)} km</span>
                       </div>
-                    </div>
-                    <div className="mt-2 pt-2 border-t border-blue-200">
-                      <span className="text-blue-600 font-medium">Nouveau total:</span>
-                      <span className="ml-2 font-bold text-lg">
-                        {manualKilometers && !isNaN(parseFloat(manualKilometers)) 
-                          ? (parseFloat(manualKilometers) + shoe.auto_kilometers).toFixed(1)
-                          : shoe.total_kilometers.toFixed(1)
-                        } km
-                      </span>
-                    </div>
+                    </div>                    <p className="mt-2 text-xs text-gray-500">
+                      Le kilométrage manuel se gère via le bouton &quot;Ajouter des km manuellement&quot; dans la liste des chaussures.
+                    </p>
                   </div>
                 )}
               </div>
@@ -258,7 +218,7 @@ export default function EditShoes({ isOpen, onClose, onShoesUpdated, shoe }: Edi
                   Annuler
                 </button>                <button
                   type="submit"
-                  disabled={isLoading || !name.trim() || !manualKilometers.trim() || isNaN(parseFloat(manualKilometers)) || parseFloat(manualKilometers) < 0}
+                  disabled={isLoading || !name.trim()}
                   className="px-6 py-2.5 border border-transparent rounded-xl shadow-sm text-sm font-medium text-white bg-orange-600 hover:bg-orange-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 flex items-center"
                 >
                   {isLoading ? (

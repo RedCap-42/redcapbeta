@@ -6,6 +6,7 @@ import CreateShoes from './createshoes';
 import EditShoes from './editshoes';
 import { LinkShoes } from './linkshoes';
 import ManualKmHistory from './ManualKmHistory';
+import ShoesGraph from './shoesgraph';
 
 interface Shoe {
   id: string;
@@ -39,10 +40,13 @@ export default function ShoesGestion() {
     // États pour la liaison aux activités
   const [isLinkShoesModalOpen, setIsLinkShoesModalOpen] = useState(false);
   const [shoeForLinking, setShoeForLinking] = useState<Shoe | null>(null);
-  
-  // États pour l'historique des kilomètres manuels
+    // États pour l'historique des kilomètres manuels
   const [isManualKmHistoryOpen, setIsManualKmHistoryOpen] = useState(false);
   const [shoeForHistory, setShoeForHistory] = useState<Shoe | null>(null);
+  
+  // États pour le graphique d'utilisation
+  const [isShoesGraphOpen, setIsShoesGraphOpen] = useState(false);
+  const [shoeForGraph, setShoeForGraph] = useState<Shoe | null>(null);
 
   const supabase = createClientComponentClient();
   const fetchShoes = useCallback(async () => {
@@ -96,10 +100,14 @@ export default function ShoesGestion() {
     setShoeForLinking(shoe);
     setIsLinkShoesModalOpen(true);
   };
-  
-  const handleViewManualKmHistory = (shoe: Shoe) => {
+    const handleViewManualKmHistory = (shoe: Shoe) => {
     setShoeForHistory(shoe);
     setIsManualKmHistoryOpen(true);
+  };
+  
+  const handleViewShoesGraph = (shoe: Shoe) => {
+    setShoeForGraph(shoe);
+    setIsShoesGraphOpen(true);
   };
   const handleConfirmAddKm = async () => {
     if (!shoeForKmUpdate || !manualKmForm.kilometers.trim() || !manualKmForm.title.trim()) {
@@ -253,7 +261,11 @@ export default function ShoesGestion() {
         </div>
       ) : (        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {shoes.map((shoe) => (
-            <div key={shoe.id} className="bg-white rounded-xl shadow-sm border border-gray-200 hover:shadow-md transition-all duration-200 overflow-hidden flex flex-col h-full">
+            <div 
+              key={shoe.id} 
+              className="bg-white rounded-xl shadow-sm border border-gray-200 hover:shadow-md transition-all duration-200 overflow-hidden flex flex-col h-full cursor-pointer"
+              onClick={() => handleViewShoesGraph(shoe)}
+            >
               {/* Header avec icône */}              <div className="bg-gradient-to-r from-blue-50 to-indigo-50 px-6 py-4 border-b border-gray-100">
                 <div className="flex items-center space-x-3">
                   <div className="flex-shrink-0 w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
@@ -306,7 +318,10 @@ export default function ShoesGestion() {
                     </div>
                       {/* Boutons d'action pour le kilométrage */}
                     <div className="mt-3 flex flex-wrap gap-2">                      <button
-                        onClick={() => handleAddKilometers(shoe)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleAddKilometers(shoe);
+                        }}
                         className="flex items-center justify-center px-3 py-1.5 text-xs font-medium text-green-700 bg-green-50 border border-green-200 rounded-md hover:bg-green-100 transition-colors duration-200"
                         title="Ajouter manuellement des kilomètres"
                       >
@@ -315,9 +330,11 @@ export default function ShoesGestion() {
                         </svg>
                         Ajouter des km manuellement
                       </button>
-                      {shoe.manual_kilometers > 0 && (
-                        <button
-                          onClick={() => handleViewManualKmHistory(shoe)}
+                      {shoe.manual_kilometers > 0 && (                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleViewManualKmHistory(shoe);
+                          }}
                           className="flex items-center justify-center px-3 py-1.5 text-xs font-medium text-purple-700 bg-purple-50 border border-purple-200 rounded-md hover:bg-purple-100 transition-colors duration-200"
                           title="Voir l'historique des kilomètres manuels"
                         >
@@ -326,9 +343,11 @@ export default function ShoesGestion() {
                           </svg>
                           Historique
                         </button>
-                      )}
-                      <button
-                        onClick={() => handleLinkToActivities(shoe)}
+                      )}                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleLinkToActivities(shoe);
+                        }}
                         className="flex items-center justify-center px-3 py-1.5 text-xs font-medium text-blue-700 bg-blue-50 border border-blue-200 rounded-md hover:bg-blue-100 transition-colors duration-200"
                         title="Lier à des activités"
                       >
@@ -353,18 +372,22 @@ export default function ShoesGestion() {
                   </div>
                   
                   {/* Boutons d'action */}
-                  <div className="flex items-center space-x-2">
-                    <button
-                      onClick={() => handleEditShoe(shoe)}
+                  <div className="flex items-center space-x-2">                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleEditShoe(shoe);
+                      }}
                       className="flex items-center justify-center w-8 h-8 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-full transition-all duration-200"
                       title="Modifier"
                     >
                       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
                       </svg>
-                    </button>
-                    <button
-                      onClick={() => handleDeleteShoe(shoe)}
+                    </button>                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDeleteShoe(shoe);
+                      }}
                       className="flex items-center justify-center w-8 h-8 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-full transition-all duration-200"
                       title="Supprimer"
                     >
@@ -563,6 +586,16 @@ export default function ShoesGestion() {
           }}
         />
       )}
+
+      {/* Modal pour le graphique d'utilisation */}
+      <ShoesGraph
+        shoe={shoeForGraph}
+        isOpen={isShoesGraphOpen}
+        onClose={() => {
+          setIsShoesGraphOpen(false);
+          setShoeForGraph(null);
+        }}
+      />
     </div>
   );
 }
