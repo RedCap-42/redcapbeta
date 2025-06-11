@@ -6,7 +6,8 @@
     "dev": "next dev --turbopack",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "clear-auth": "node clear-auth.js"
   },
   "dependencies": {
     "@supabase/auth-helpers-nextjs": "^0.10.0",

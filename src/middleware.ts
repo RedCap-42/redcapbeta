@@ -7,14 +7,36 @@ export async function middleware(request: NextRequest) {
   const supabase = createMiddlewareClient({ req: request, res });
 
   try {
-    // Récupération de la session avec gestion d'erreur
-    const { data: { session }, error } = await supabase.auth.getSession();
-    
     console.log('Middleware exécuté sur:', request.nextUrl.pathname);
     
-    // Si il y a une erreur (comme rate limit), laisser passer sans redirection
+    // Récupération de la session avec gestion d'erreur améliorée
+    const { data: { session }, error } = await supabase.auth.getSession();
+    
+    // Gestion spécifique des erreurs de token
     if (error) {
       console.warn('Erreur middleware:', error.message);
+      
+      // Si c'est une erreur de refresh token, nettoyer les cookies et traiter comme non connecté
+      if (error.message.includes('refresh_token_not_found') || 
+          error.message.includes('Invalid Refresh Token') ||
+          error.code === 'refresh_token_not_found') {
+        console.log('Token de rafraîchissement invalide, nettoyage des cookies');
+        
+        // Nettoyer les cookies d'authentification
+        const response = NextResponse.next();
+        response.cookies.delete('supabase-auth-token');
+        response.cookies.delete('sb-localhost-auth-token');
+        
+        // Traiter comme utilisateur non connecté
+        if (request.nextUrl.pathname.startsWith('/dashboard')) {
+          console.log('Redirection vers / (token invalide)');
+          return NextResponse.redirect(new URL('/', request.url));
+        }
+        
+        return response;
+      }
+      
+      // Pour les autres erreurs, laisser passer sans redirection
       return res;
     }
     
@@ -39,8 +61,16 @@ export async function middleware(request: NextRequest) {
     return res;
   } catch (error) {
     console.error('Erreur inattendue dans le middleware:', error);
-    // En cas d'erreur, laisser passer la requête sans redirection
-    return res;
+    
+    // En cas d'erreur de parsing ou autre, nettoyer et traiter comme non connecté
+    const response = NextResponse.next();
+    
+    // Si on est sur une route protégée, rediriger vers l'accueil
+    if (request.nextUrl.pathname.startsWith('/dashboard')) {
+      return NextResponse.redirect(new URL('/', request.url));
+    }
+    
+    return response;
   }
 }
 

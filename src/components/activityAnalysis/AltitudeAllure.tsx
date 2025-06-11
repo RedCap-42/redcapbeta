@@ -356,8 +356,8 @@ export default function AltitudeAllure({ activity }: AltitudeAllureProps) {
       },      ...(showAltitude && altitudeData.length > 0 ? [{
         label: 'Altitude (m)',
         data: altitudeData.map(point => point.altitude),
-        borderColor: 'rgb(34, 197, 94)',
-        backgroundColor: 'rgba(34, 197, 94, 0.2)',
+        borderColor: 'rgb(16, 185, 129)', // Emerald-500
+        backgroundColor: 'rgba(16, 185, 129, 0.2)',
         borderWidth: 2,
         pointRadius: 0,
         tension: 0.2,
@@ -380,11 +380,11 @@ export default function AltitudeAllure({ activity }: AltitudeAllureProps) {
         event.native.stopPropagation();
       }
       setIsModalOpen(true);
-    },
-    plugins: {
+    },    plugins: {
       legend: {
         display: showAltitude && altitudeData.length > 0,
         position: 'top' as const,
+        onClick: () => {}, // Désactiver le clic sur la légende
       },
       title: {
         display: false,
@@ -484,18 +484,17 @@ export default function AltitudeAllure({ activity }: AltitudeAllureProps) {
       <div className="flex items-center justify-between mb-4">
         <h4 className="text-lg font-semibold text-gray-800">Analyse de l&apos;Allure avec Profil d&apos;Altitude</h4>
         
-        {/* Bouton pour activer/désactiver l'affichage de l'altitude */}
-        {altitudeData.length > 0 && (
+        {/* Bouton pour activer/désactiver l'affichage de l'altitude */}        {altitudeData.length > 0 && (
           <button
             onClick={() => setShowAltitude(!showAltitude)}
             className={`flex items-center px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
               showAltitude
-                ? 'bg-green-100 text-green-800 hover:bg-green-200'
+                ? 'bg-emerald-100 text-emerald-800 hover:bg-emerald-200'
                 : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
             }`}
           >
             <svg 
-              className={`w-4 h-4 mr-2 transition-colors ${showAltitude ? 'text-green-600' : 'text-gray-500'}`} 
+              className={`w-4 h-4 mr-2 transition-colors ${showAltitude ? 'text-emerald-600' : 'text-gray-500'}`} 
               fill="none" 
               stroke="currentColor" 
               viewBox="0 0 24 24"
@@ -601,19 +600,18 @@ export default function AltitudeAllure({ activity }: AltitudeAllureProps) {
                   {/* Bouton altitude pour le modal */}
                   {altitudeData.length > 0 && (
                     <button
-                      onClick={() => setShowAltitude(!showAltitude)}
-                      className={`flex items-center px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
-                        showAltitude
-                          ? 'bg-green-100 text-green-800 hover:bg-green-200'
-                          : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                      }`}
+                      onClick={() => setShowAltitude(!showAltitude)}                    className={`flex items-center px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
+                      showAltitude
+                        ? 'bg-emerald-100 text-emerald-800 hover:bg-emerald-200'
+                        : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                    }`}
+                  >
+                    <svg 
+                      className={`w-4 h-4 mr-2 transition-colors ${showAltitude ? 'text-emerald-600' : 'text-gray-500'}`} 
+                      fill="none" 
+                      stroke="currentColor" 
+                      viewBox="0 0 24 24"
                     >
-                      <svg 
-                        className={`w-4 h-4 mr-2 transition-colors ${showAltitude ? 'text-green-600' : 'text-gray-500'}`} 
-                        fill="none" 
-                        stroke="currentColor" 
-                        viewBox="0 0 24 24"
-                      >
                         <path 
                           strokeLinecap="round" 
                           strokeLinejoin="round" 
@@ -693,10 +691,10 @@ export default function AltitudeAllure({ activity }: AltitudeAllureProps) {
                     maintainAspectRatio: false,
                     responsive: true,
                     plugins: {
-                      ...chartOptions.plugins,
-                      legend: {
+                      ...chartOptions.plugins,                      legend: {
                         display: showAltitude && altitudeData.length > 0,
                         position: 'top' as const,
+                        onClick: () => {}, // Désactiver le clic sur la légende
                         labels: {
                           font: { size: 14 },
                           padding: 20
@@ -734,9 +732,8 @@ export default function AltitudeAllure({ activity }: AltitudeAllureProps) {
                           ...chartOptions.scales.y1,
                           title: {
                             display: true,
-                            text: 'Altitude (m)',
-                            font: { size: 14, weight: 'bold' },
-                            color: '#059669'
+                            text: 'Altitude (m)',                            font: { size: 14, weight: 'bold' },
+                            color: '#10b981' // Emerald-500
                           }
                         }
                       } : {})

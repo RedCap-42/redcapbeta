@@ -25,3 +25,38 @@ supabase.auth.onAuthStateChange((event, session) => {
   console.log('Supabase: Changement d\'état d\'authentification -', event);
   console.log('Supabase: Session existe:', !!session);
 });
+
+// Fonction utilitaire pour nettoyer les cookies d'authentification corrompus
+export const clearAuthCookies = () => {
+  if (typeof document !== 'undefined') {
+    // Nettoyer tous les cookies liés à Supabase
+    const cookiesToClear = [
+      'supabase-auth-token',
+      'sb-localhost-auth-token',
+      'sb-auth-token',
+      // Ajouter d'autres patterns de cookies Supabase si nécessaire
+    ];
+    
+    cookiesToClear.forEach(cookieName => {
+      document.cookie = `${cookieName}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;`;
+      document.cookie = `${cookieName}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; domain=localhost;`;
+      document.cookie = `${cookieName}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; domain=.localhost;`;
+    });
+    
+    console.log('Cookies d\'authentification nettoyés');
+  }
+};
+
+// Fonction pour vérifier si on a des tokens corrompus
+export const hasCorruptedTokens = async () => {
+  try {
+    const { error } = await supabase.auth.getSession();
+    return error && (
+      error.message.includes('refresh_token_not_found') ||
+      error.message.includes('Invalid Refresh Token') ||
+      error.code === 'refresh_token_not_found'
+    );
+  } catch {
+    return true; // En cas d'erreur, considérer comme corrompu
+  }
+};

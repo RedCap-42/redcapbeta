@@ -336,12 +336,11 @@ export default function HeartRate({ activity }: HeartRateProps) {  const [loadin
         pointHoverBorderWidth: 2, // Épaisseur de la bordure
         tension: 0.1, // Léger lissage pour la courbe de fréquence cardiaque
         yAxisID: 'y',
-      },
-      ...(showAltitude && altitudeData.length > 0 ? [{
+      },      ...(showAltitude && altitudeData.length > 0 ? [{
         label: 'Altitude (m)',
         data: altitudeData.map(point => point.altitude),
-        borderColor: 'rgba(34, 197, 94, 0.8)', // Vert pour l'altitude
-        backgroundColor: 'rgba(34, 197, 94, 0.1)',
+        borderColor: 'rgb(16, 185, 129)', // Emerald-500 pour l'altitude
+        backgroundColor: 'rgba(16, 185, 129, 0.1)',
         borderWidth: 1,
         pointRadius: 0,
         pointHoverRadius: 6,
@@ -349,7 +348,7 @@ export default function HeartRate({ activity }: HeartRateProps) {  const [loadin
         fill: true,
         tension: 0.2,
         yAxisID: 'y1',
-        pointHoverBackgroundColor: 'rgb(34, 197, 94)',
+        pointHoverBackgroundColor: 'rgb(16, 185, 129)',
         pointHoverBorderColor: 'white',
         pointHoverBorderWidth: 2,
       }] : []),
@@ -368,11 +367,11 @@ export default function HeartRate({ activity }: HeartRateProps) {  const [loadin
         event.native.stopPropagation();
       }
       setIsModalOpen(true);
-    },
-    plugins: {
+    },    plugins: {
       legend: {
         display: showAltitude && altitudeData.length > 0,
         position: 'top' as const,
+        onClick: () => {}, // Désactiver le clic sur la légende
       },
       title: {
         display: false,
@@ -467,8 +466,7 @@ export default function HeartRate({ activity }: HeartRateProps) {  const [loadin
     );
   }
   return (
-    <div>
-      <div className="flex items-center justify-between mb-4">
+    <div>      <div className="flex items-center justify-between mb-4">
         <h4 className="text-lg font-semibold text-gray-800">Analyse de la Fréquence Cardiaque</h4>
         
         {/* Bouton pour activer/désactiver l'affichage de l'altitude */}
@@ -477,12 +475,12 @@ export default function HeartRate({ activity }: HeartRateProps) {  const [loadin
             onClick={() => setShowAltitude(!showAltitude)}
             className={`flex items-center px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
               showAltitude
-                ? 'bg-green-100 text-green-800 hover:bg-green-200'
+                ? 'bg-emerald-100 text-emerald-800 hover:bg-emerald-200'
                 : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
             }`}
           >
             <svg 
-              className={`w-4 h-4 mr-2 transition-colors ${showAltitude ? 'text-green-600' : 'text-gray-500'}`} 
+              className={`w-4 h-4 mr-2 transition-colors ${showAltitude ? 'text-emerald-600' : 'text-gray-500'}`} 
               fill="none" 
               stroke="currentColor" 
               viewBox="0 0 24 24"
@@ -568,12 +566,12 @@ export default function HeartRate({ activity }: HeartRateProps) {  const [loadin
                     onClick={() => setShowAltitude(!showAltitude)}
                     className={`flex items-center px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
                       showAltitude
-                        ? 'bg-green-100 text-green-800 hover:bg-green-200'
+                        ? 'bg-emerald-100 text-emerald-800 hover:bg-emerald-200'
                         : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                     }`}
                   >
                     <svg 
-                      className={`w-4 h-4 mr-2 transition-colors ${showAltitude ? 'text-green-600' : 'text-gray-500'}`} 
+                      className={`w-4 h-4 mr-2 transition-colors ${showAltitude ? 'text-emerald-600' : 'text-gray-500'}`} 
                       fill="none" 
                       stroke="currentColor" 
                       viewBox="0 0 24 24"
@@ -649,17 +647,19 @@ export default function HeartRate({ activity }: HeartRateProps) {  const [loadin
                       </div>
                     </div>
                   )}
-                </div>
-
-                {/* Graphique en grand format */}
+                </div>                {/* Graphique en grand format */}
                 <div className="h-[500px] mb-6 bg-gray-50 rounded-lg p-4">
                   <Line data={{
                     labels: getFilteredData().labels,
                     datasets: [
                       {
                         ...chartData.datasets[0],
-                        data: getFilteredData().data
-                      }
+                        data: getFilteredData().heartRateData
+                      },
+                      ...(showAltitude && altitudeData.length > 0 ? [{
+                        ...chartData.datasets[1],
+                        data: getFilteredData().altitudeData
+                      }] : [])
                     ]
                   }} options={{
                     ...chartOptions,

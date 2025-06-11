@@ -27,7 +27,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [isLoading, setIsLoading] = useState(true);
   const router = useRouter();
   const supabase = createClientComponentClient();
-
   useEffect(() => {
     console.log('AuthContext: Initializing auth state');
     
@@ -37,6 +36,19 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         
         if (error) {
           console.error('AuthContext: Error getting session:', error.message);
+          
+          // Si c'est une erreur de refresh token, nettoyer complètement l'état
+          if (error.message.includes('refresh_token_not_found') || 
+              error.message.includes('Invalid Refresh Token') ||
+              error.code === 'refresh_token_not_found') {
+            console.log('AuthContext: Cleaning invalid session state');
+            setSession(null);
+            setUser(null);
+            // Forcer la déconnexion pour nettoyer les cookies
+            await supabase.auth.signOut();
+          }
+          
+          setIsLoading(false);
           return;
         }
         
@@ -48,6 +60,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         }
       } catch (error) {
         console.error('AuthContext: Unexpected error during getSession:', error);
+        // En cas d'erreur, réinitialiser l'état
+        setSession(null);
+        setUser(null);
       } finally {
         setIsLoading(false);
       }
@@ -72,6 +87,13 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         if (event === 'SIGNED_OUT') {
           console.log('AuthContext: User signed out');
           router.refresh();
+        }
+        
+        // Gestion des erreurs de token
+        if (event === 'TOKEN_REFRESHED' && !newSession) {
+          console.log('AuthContext: Token refresh failed, signing out');
+          setSession(null);
+          setUser(null);
         }
       }
     );
