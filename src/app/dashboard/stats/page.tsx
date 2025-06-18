@@ -7,19 +7,18 @@ import TrainingTypeChart from '@/components/widgets/trainingTypeWidget/TrainingT
 export default function StatsPage() {
   // useAuth est conservé pour une utilisation future potentielle
   const { /* user */ } = useAuth();
-
   return (
     <div className="container mx-auto p-6">
       <h1 className="text-2xl font-bold mb-6">Statistiques</h1>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
         {/* Widget de volume d'entraînement */}
-        <div className="col-span-1">
+        <div className="col-span-1 h-fit">
           <VolumeChart />
         </div>
 
         {/* Widget de type d'entraînements */}
-        <div className="col-span-1">
+        <div className="col-span-1 h-fit">
           <TrainingTypeChart />
         </div>
       </div>

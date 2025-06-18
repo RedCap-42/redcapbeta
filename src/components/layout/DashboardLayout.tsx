@@ -34,7 +34,6 @@ export default function DashboardLayout({
   if (!user) {
     return null;
   }
-
   return (
     <div className="flex h-screen bg-gray-50">
       <Sidebar />
@@ -43,6 +42,15 @@ export default function DashboardLayout({
         <main className="flex-1 overflow-y-auto p-6">
           {children}
         </main>
+        {/* Footer */}
+        <footer className="bg-white border-t border-gray-200 px-6 py-4">
+          <div className="text-center">
+            <p className="text-sm text-gray-500">
+              Créé avec <span className="text-red-500">❤️</span> par{' '}
+              <span className="font-medium text-gray-700">CasquetteRouge</span>
+            </p>
+          </div>
+        </footer>
       </div>
     </div>
   );

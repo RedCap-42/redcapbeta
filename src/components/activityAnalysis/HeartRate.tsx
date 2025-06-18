@@ -322,12 +322,11 @@ export default function HeartRate({ activity }: HeartRateProps) {  const [loadin
   const chartData = {
     labels: heartRateData.map(point => point.distance.toFixed(1)),
     datasets: [
-      {
-        label: 'Fréquence cardiaque (bpm)',
+      {        label: 'Fréquence cardiaque (bpm)',
         data: heartRateData.map(point => point.heartRate),
         borderColor: 'rgb(239, 68, 68)', // Rouge pour la fréquence cardiaque
         backgroundColor: 'rgba(239, 68, 68, 0.1)',
-        borderWidth: 1,
+        borderWidth: 3,
         pointRadius: 0, // Pas de points visibles pour avoir une courbe continue
         pointHoverRadius: 8, // Augmenté pour une meilleure détection du curseur
         pointHitRadius: 15, // Zone de détection élargie pour le curseur
@@ -336,12 +335,11 @@ export default function HeartRate({ activity }: HeartRateProps) {  const [loadin
         pointHoverBorderWidth: 2, // Épaisseur de la bordure
         tension: 0.1, // Léger lissage pour la courbe de fréquence cardiaque
         yAxisID: 'y',
-      },      ...(showAltitude && altitudeData.length > 0 ? [{
-        label: 'Altitude (m)',
+      },      ...(showAltitude && altitudeData.length > 0 ? [{        label: 'Altitude (m)',
         data: altitudeData.map(point => point.altitude),
         borderColor: 'rgb(16, 185, 129)', // Emerald-500 pour l'altitude
         backgroundColor: 'rgba(16, 185, 129, 0.1)',
-        borderWidth: 1,
+        borderWidth: 3,
         pointRadius: 0,
         pointHoverRadius: 6,
         pointHitRadius: 10,

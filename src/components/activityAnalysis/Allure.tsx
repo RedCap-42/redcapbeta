@@ -46,12 +46,18 @@ interface PaceDataPoint {
   speed: number; // en m/s pour faciliter les calculs
 }
 
+interface HeartRateDataPoint {
+  distance: number; // en km
+  heartRate: number; // en bpm
+}
+
 interface FitRecord {
   speed?: number;
   distance?: number;
   timestamp?: Date;
   enhanced_speed?: number;
   enhanced_distance?: number;
+  heart_rate?: number;
   [key: string]: unknown;
 }
 
@@ -65,10 +71,12 @@ type AllureProps = {
   activity: Activity;
 };
 
-export default function Allure({ activity }: AllureProps) {
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);  const [paceData, setPaceData] = useState<PaceDataPoint[]>([]);
+export default function Allure({ activity }: AllureProps) {  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [paceData, setPaceData] = useState<PaceDataPoint[]>([]);
+  const [heartRateData, setHeartRateData] = useState<HeartRateDataPoint[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [showHeartRate, setShowHeartRate] = useState(false);
   const [zoomPosition, setZoomPosition] = useState(0); // Position du zoom (0-100%)
   const [zoomLevel, setZoomLevel] = useState(100); // Niveau de zoom (20-100%)
   const { user } = useAuth();
@@ -78,21 +86,22 @@ export default function Allure({ activity }: AllureProps) {
     const seconds = Math.floor(paceInSeconds % 60);
     return `${minutes}:${seconds.toString().padStart(2, '0')}`;
   };
-
   // Fonction pour calculer les données filtrées selon le zoom
   const getFilteredData = () => {
-    if (paceData.length === 0) return { labels: [], data: [] };
+    if (paceData.length === 0) return { labels: [], paceData: [], heartRateData: [] };
     
     const totalPoints = paceData.length;
     const visiblePoints = Math.floor((totalPoints * zoomLevel) / 100);
     const startIndex = Math.floor((totalPoints - visiblePoints) * (zoomPosition / 100));
     const endIndex = startIndex + visiblePoints;
     
-    const filteredData = paceData.slice(startIndex, endIndex);
+    const filteredPaceData = paceData.slice(startIndex, endIndex);
+    const filteredHeartRateData = heartRateData.slice(startIndex, endIndex);
     
     return {
-      labels: filteredData.map(point => point.distance.toFixed(1)),
-      data: filteredData.map(point => point.pace / 60)
+      labels: filteredPaceData.map(point => point.distance.toFixed(1)),
+      paceData: filteredPaceData.map(point => point.pace / 60),
+      heartRateData: filteredHeartRateData.map(point => point.heartRate)
     };
   };
 
@@ -196,9 +205,9 @@ export default function Allure({ activity }: AllureProps) {
 
           try {
             console.log('Données FIT reçues:', Object.keys(data));
-            
-            // Extraire les données de records pour calculer l'allure
+              // Extraire les données de records pour calculer l'allure et la fréquence cardiaque
             const pacePoints: PaceDataPoint[] = [];
+            const heartRatePoints: HeartRateDataPoint[] = [];
             let lastDistance = 0;
             let lastTimestamp: Date | null = null;
 
@@ -209,6 +218,7 @@ export default function Allure({ activity }: AllureProps) {
                 // Priorité aux données enhanced, sinon utiliser les données standard
                 const speed = record.enhanced_speed || record.speed;
                 const distance = record.enhanced_distance || record.distance;
+                const heartRate = record.heart_rate;
                 const timestamp = record.timestamp;
 
                 // Méthode 1: Utiliser la distance cumulée si disponible
@@ -228,8 +238,16 @@ export default function Allure({ activity }: AllureProps) {
                       });
                     }
                   }
-                  lastDistance = distance;
-                } 
+
+                  // Ajouter les données de fréquence cardiaque si disponibles
+                  if (heartRate !== undefined && heartRate > 0 && heartRate < 250) { // Filtrer les valeurs aberrantes
+                    heartRatePoints.push({
+                      distance: distanceInKm,
+                      heartRate: heartRate
+                    });
+                  }
+                  
+                  lastDistance = distance;                } 
                 // Méthode 2: Utiliser la vitesse pour estimer la distance
                 else if (speed !== undefined && speed > 0 && index > 0) {
                   // Estimer l'intervalle de temps (généralement 1 seconde)
@@ -254,6 +272,14 @@ export default function Allure({ activity }: AllureProps) {
                       speed: speed
                     });
                   }
+
+                  // Ajouter les données de fréquence cardiaque si disponibles
+                  if (heartRate !== undefined && heartRate > 0 && heartRate < 250) {
+                    heartRatePoints.push({
+                      distance: distanceInKm,
+                      heartRate: heartRate
+                    });
+                  }
                 }
                 
                 if (timestamp) {
@@ -263,7 +289,9 @@ export default function Allure({ activity }: AllureProps) {
             }
 
             console.log(`Points d'allure extraits: ${pacePoints.length}`);
+            console.log(`Points de fréquence cardiaque extraits: ${heartRatePoints.length}`);
             setPaceData(pacePoints);
+            setHeartRateData(heartRatePoints);
             setLoading(false);
           } catch (err) {
             console.error('Erreur lors de l\'extraction des données d\'allure:', err);
@@ -303,7 +331,6 @@ export default function Allure({ activity }: AllureProps) {
       document.body.style.overflow = 'unset';
     };
   }, [isModalOpen]);
-
   // Configuration du graphique
   const chartData = {
     labels: paceData.map(point => point.distance.toFixed(1)),
@@ -312,14 +339,34 @@ export default function Allure({ activity }: AllureProps) {
         label: 'Allure (min/km)',
         data: paceData.map(point => point.pace / 60), // Convertir en minutes pour l'affichage
         borderColor: 'rgb(79, 70, 229)',
-        backgroundColor: 'rgba(79, 70, 229, 0.1)',        borderWidth: 1,        pointRadius: 0, // Pas de points visibles pour avoir une courbe continue
+        backgroundColor: 'rgba(79, 70, 229, 0.1)',
+        borderWidth: 2,
+        pointRadius: 0, // Pas de points visibles pour avoir une courbe continue
         pointHoverRadius: 8, // Augmenté pour une meilleure détection du curseur
         pointHitRadius: 15, // Zone de détection élargie pour le curseur
         pointHoverBackgroundColor: 'rgb(79, 70, 229)', // Couleur de la bille au survol
         pointHoverBorderColor: 'white', // Bordure blanche pour la bille
         pointHoverBorderWidth: 2, // Épaisseur de la bordure
         tension: 0, // Pas de lissage, courbe brute
+        yAxisID: 'y',
+        fill: false,
       },
+      ...(showHeartRate && heartRateData.length > 0 ? [{
+        label: 'Fréquence cardiaque (bpm)',
+        data: heartRateData.map(point => point.heartRate),
+        borderColor: 'rgb(239, 68, 68)', // Rouge pour la fréquence cardiaque
+        backgroundColor: 'rgba(239, 68, 68, 0.1)',
+        borderWidth: 3,
+        pointRadius: 0,
+        pointHoverRadius: 8,
+        pointHitRadius: 15,
+        pointHoverBackgroundColor: 'rgb(239, 68, 68)',
+        pointHoverBorderColor: 'white',
+        pointHoverBorderWidth: 2,
+        tension: 0.1, // Léger lissage pour la fréquence cardiaque
+        yAxisID: 'y1',
+        fill: false,
+      }] : [])
     ],
   };  const chartOptions = {
     responsive: true,
@@ -327,7 +374,8 @@ export default function Allure({ activity }: AllureProps) {
     interaction: {
       mode: 'index' as const,
       intersect: false,
-    },    onClick: (event: ChartEvent) => {
+    },
+    onClick: (event: ChartEvent) => {
       if (event.native) {
         event.native.preventDefault();
         event.native.stopPropagation();
@@ -336,15 +384,18 @@ export default function Allure({ activity }: AllureProps) {
     },
     plugins: {
       legend: {
-        display: false,
+        display: showHeartRate && heartRateData.length > 0,
+        position: 'top' as const,
+        onClick: () => {}, // Désactiver le clic sur la légende
       },
       title: {
         display: false,
-      },      tooltip: {
-        intersect: false, // Permet d'afficher le tooltip même sans être exactement sur un point
-        mode: 'index' as const, // Affiche le tooltip pour le point le plus proche sur l'axe X
-        displayColors: false, // Masque la petite couleur dans le tooltip
-        backgroundColor: 'rgba(0, 0, 0, 0.8)', // Fond du tooltip plus opaque
+      },
+      tooltip: {
+        intersect: false,
+        mode: 'index' as const,
+        displayColors: showHeartRate && heartRateData.length > 0,
+        backgroundColor: 'rgba(0, 0, 0, 0.8)',
         titleColor: 'white',
         bodyColor: 'white',
         borderColor: 'rgb(79, 70, 229)',
@@ -352,17 +403,21 @@ export default function Allure({ activity }: AllureProps) {
         cornerRadius: 6,
         caretPadding: 10,
         callbacks: {
-          label: function(context: { parsed: { y: number } }) {
-            const paceInMinutes = context.parsed.y;
-            return `Allure: ${formatPaceFromSeconds(paceInMinutes * 60)}/km`;
+          label: function(context: { datasetIndex: number; parsed: { y: number } }) {
+            if (context.datasetIndex === 0) {
+              const paceInMinutes = context.parsed.y;
+              return `Allure: ${formatPaceFromSeconds(paceInMinutes * 60)}/km`;
+            } else if (context.datasetIndex === 1) {
+              return `Fréquence cardiaque: ${context.parsed.y.toFixed(0)} bpm`;
+            }
+            return '';
           },
           title: function(context: Array<{ label: string }>) {
             return `Distance: ${context[0].label} km`;
           }
         }
       }
-    },
-    scales: {
+    },    scales: {
       x: {
         display: true,
         title: {
@@ -373,9 +428,10 @@ export default function Allure({ activity }: AllureProps) {
           display: true,
           color: 'rgba(0, 0, 0, 0.1)'
         }
-      },
-      y: {
+      },      y: {
+        type: 'linear' as const,
         display: true,
+        position: 'left' as const,
         title: {
           display: true,
           text: 'Allure (min/km)'
@@ -392,6 +448,23 @@ export default function Allure({ activity }: AllureProps) {
         },
         reverse: true // Plus rapide en haut, plus lent en bas
       },
+      ...(showHeartRate && heartRateData.length > 0 ? {
+        y1: {
+          type: 'linear' as const,
+          display: true,
+          position: 'right' as const,
+          title: {
+            display: true,
+            text: 'Fréquence cardiaque (bpm)'
+          },
+          grid: {
+            drawOnChartArea: false,
+          },
+          ticks: {
+            color: 'rgb(239, 68, 68)',
+          }
+        }
+      } : {})
     },
   };
 
@@ -402,10 +475,38 @@ export default function Allure({ activity }: AllureProps) {
         <p className="text-sm text-gray-600 mt-2">Chargement des données d&apos;allure...</p>
       </div>
     );
-  }
-  return (
+  }  return (
     <div>
-      <h4 className="text-lg font-semibold text-gray-800 mb-4">Analyse de l&apos;Allure</h4>
+      <div className="flex items-center justify-between mb-4">
+        <h4 className="text-lg font-semibold text-gray-800">Analyse de l&apos;Allure</h4>
+        
+        {/* Bouton pour activer/désactiver l'affichage de la fréquence cardiaque */}
+        {heartRateData.length > 0 && (
+          <button
+            onClick={() => setShowHeartRate(!showHeartRate)}
+            className={`flex items-center px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
+              showHeartRate
+                ? 'bg-red-100 text-red-800 hover:bg-red-200'
+                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+            }`}
+          >
+            <svg 
+              className={`w-4 h-4 mr-2 transition-colors ${showHeartRate ? 'text-red-600' : 'text-gray-500'}`} 
+              fill="none" 
+              stroke="currentColor" 
+              viewBox="0 0 24 24"
+            >
+              <path 
+                strokeLinecap="round" 
+                strokeLinejoin="round" 
+                strokeWidth={2} 
+                d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" 
+              />
+            </svg>
+            {showHeartRate ? 'Masquer la fréquence cardiaque' : 'Afficher la fréquence cardiaque'}
+          </button>
+        )}
+      </div>
       
       {error && (
         <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-4">
@@ -422,9 +523,11 @@ export default function Allure({ activity }: AllureProps) {
       )}      {paceData.length > 0 ? (
         <div className="bg-white border border-gray-200 rounded-lg p-4">          <div className="h-64">
             <Line data={chartData} options={chartOptions} />
-          </div>
-          <div className="mt-4 text-xs text-gray-500 text-center">
-            Graphique d&apos;allure brute • {paceData.length} points de données • Cliquez pour agrandir
+          </div>          <div className="mt-4 text-xs text-gray-500 text-center">
+            <div>Graphique d&apos;allure • {paceData.length} points de données • Cliquez pour agrandir</div>
+            {heartRateData.length > 0 && (
+              <div>Données de fréquence cardiaque disponibles • {heartRateData.length} points de FC</div>
+            )}
           </div>
         </div>
       ) : !loading && !error && (
@@ -458,10 +561,9 @@ export default function Allure({ activity }: AllureProps) {
           <div className="fixed inset-0 z-[70] flex items-center justify-center p-6">
             <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-6xl max-h-[90vh] overflow-hidden animate-in zoom-in-95 duration-300">
               {/* Header du modal */}
-              <div className="flex items-center justify-between p-6 border-b border-gray-200 bg-gradient-to-r from-indigo-50 to-purple-50">
-                <div>
+              <div className="flex items-center justify-between p-6 border-b border-gray-200 bg-gradient-to-r from-indigo-50 to-purple-50">                <div>
                   <h2 className="text-2xl font-bold text-gray-900">
-                    Analyse détaillée de l&apos;allure
+                    Analyse de l&apos;Allure
                   </h2>
                   <p className="text-sm text-gray-600 mt-1">
                     {activity.name} • {paceData.length} points de données
@@ -487,18 +589,17 @@ export default function Allure({ activity }: AllureProps) {
                     <label className="text-sm font-medium text-gray-700 min-w-[100px]">
                       Niveau de zoom:
                     </label>
-                    <div className="flex-1">
-                      <input
+                    <div className="flex-1">                      <input
                         type="range"
                         min="20"
                         max="100"
                         value={zoomLevel}
                         onChange={(e) => setZoomLevel(Number(e.target.value))}
-                        className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer slider"
+                        className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer hover:bg-gray-300 transition-colors duration-200"
                       />                      <div className="flex justify-between text-xs text-gray-500 mt-1">
-                        <span>Vue complète</span>
-                        <span>{zoomLevel}%</span>
                         <span>Zoom max</span>
+                        <span>{zoomLevel}%</span>
+                        <span>Vue complète</span>
                       </div>
                     </div>
                   </div>
@@ -509,14 +610,13 @@ export default function Allure({ activity }: AllureProps) {
                       <label className="text-sm font-medium text-gray-700 min-w-[100px]">
                         Position:
                       </label>
-                      <div className="flex-1">
-                        <input
+                      <div className="flex-1">                        <input
                           type="range"
                           min="0"
                           max="100"
                           value={zoomPosition}
                           onChange={(e) => setZoomPosition(Number(e.target.value))}
-                          className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer slider"
+                          className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer hover:bg-gray-300 transition-colors duration-200"
                         />
                         <div className="flex justify-between text-xs text-gray-500 mt-1">
                           <span>Début</span>
@@ -529,14 +629,17 @@ export default function Allure({ activity }: AllureProps) {
                 </div>
 
                 {/* Graphique en grand format */}
-                <div className="h-[500px] mb-6 bg-gray-50 rounded-lg p-4">
-                  <Line data={{
+                <div className="h-[500px] mb-6 bg-gray-50 rounded-lg p-4">                  <Line data={{
                     labels: getFilteredData().labels,
                     datasets: [
                       {
                         ...chartData.datasets[0],
-                        data: getFilteredData().data
-                      }
+                        data: getFilteredData().paceData
+                      },
+                      ...(showHeartRate && heartRateData.length > 0 ? [{
+                        ...chartData.datasets[1],
+                        data: getFilteredData().heartRateData
+                      }] : [])
                     ]
                   }} options={{
                     ...chartOptions,

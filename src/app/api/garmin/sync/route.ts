@@ -90,11 +90,9 @@ type GarminActivity = {
   // Autres propriétés potentielles
 };
 
-export async function POST(request: NextRequest) {
-  try {
+export async function POST(request: NextRequest) {  try {
     // Vérifier l'authentification
-    const cookiesStore = cookies();
-    const supabase = createRouteHandlerClient({ cookies: () => cookiesStore });
+    const supabase = createRouteHandlerClient({ cookies });
     const { data: { session } } = await supabase.auth.getSession();
 
     if (!session) {

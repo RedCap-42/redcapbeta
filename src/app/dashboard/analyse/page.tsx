@@ -46,14 +46,36 @@ export default function AnalysePage() {
 
   // Auth et base de données
   const { user } = useAuth();
-  const supabase = createClientComponentClient();
-
-  // Effet pour vérifier l'authentification
+  const supabase = createClientComponentClient();  // Effet pour vérifier l'authentification et récupérer une activité depuis le training plan
   useEffect(() => {
     if (!user) {
       setIsLoading(false);
       return;
     }
+
+    // Vérifier s'il y a une activité sélectionnée depuis le training plan
+    const trainingPlanData = sessionStorage.getItem('trainingPlanSelectedActivity');
+    if (trainingPlanData) {
+      try {
+        const { selectedDate: planDate, activity, goDirectToDetailedAnalysis } = JSON.parse(trainingPlanData);
+        console.log('Loading activity from training plan:', activity);
+        
+        setSelectedDate(planDate);
+        setSelectedActivity(activity);
+        
+        // Si le flag est présent, aller directement en mode analyse détaillée
+        if (goDirectToDetailedAnalysis) {
+          setIsDetailedAnalysisMode(true);
+        }
+        
+        // Nettoyer le sessionStorage après utilisation
+        sessionStorage.removeItem('trainingPlanSelectedActivity');
+      } catch (error) {
+        console.error('Error parsing training plan data:', error);
+        sessionStorage.removeItem('trainingPlanSelectedActivity');
+      }
+    }
+    
     setIsLoading(false);
   }, [user]);
 

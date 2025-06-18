@@ -17,7 +17,31 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
     persistSession: true,
     autoRefreshToken: true,
     detectSessionInUrl: true,
+    // Ajout de configuration pour éviter les boucles de refresh
+    flowType: 'pkce',
+    debug: false
   },
+  global: {
+    // Configuration pour limiter les retries qui peuvent causer des boucles
+    fetch: async (url, options = {}) => {
+      // Ajouter un timeout et limiter les retries
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 secondes timeout
+
+      try {
+        const response = await fetch(url, {
+          ...options,
+          signal: controller.signal,
+        });
+        clearTimeout(timeoutId);
+        return response;
+      } catch (error) {
+        clearTimeout(timeoutId);
+        console.error('Supabase fetch error:', error);
+        throw error;
+      }
+    }
+  }
 });
 
 // Ajouter un écouteur pour les changements d'état d'authentification pour le débogage
@@ -30,21 +54,87 @@ supabase.auth.onAuthStateChange((event, session) => {
 export const clearAuthCookies = () => {
   if (typeof document !== 'undefined') {
     // Nettoyer tous les cookies liés à Supabase
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const hostname = supabaseUrl ? new URL(supabaseUrl).hostname.replace(/\./g, '-') : 'localhost';
+    
     const cookiesToClear = [
       'supabase-auth-token',
       'sb-localhost-auth-token',
       'sb-auth-token',
-      // Ajouter d'autres patterns de cookies Supabase si nécessaire
+      `sb-${hostname}-auth-token`,
+      // Patterns spécifiques pour les différents environnements
+      'sb-127-0-0-1-auth-token',
+      'sb-local-auth-token',
     ];
     
     cookiesToClear.forEach(cookieName => {
-      document.cookie = `${cookieName}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;`;
-      document.cookie = `${cookieName}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; domain=localhost;`;
-      document.cookie = `${cookieName}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; domain=.localhost;`;
+      // Nettoyer sur plusieurs domaines et chemins possibles
+      const domains = ['localhost', '.localhost', '127.0.0.1', '.127.0.0.1', undefined];
+      const paths = ['/', undefined];
+      
+      domains.forEach(domain => {
+        paths.forEach(path => {
+          const cookieString = `${cookieName}=; expires=Thu, 01 Jan 1970 00:00:00 UTC;${path ? ` path=${path};` : ''}${domain ? ` domain=${domain};` : ''}`;
+          document.cookie = cookieString;
+        });
+      });
     });
     
     console.log('Cookies d\'authentification nettoyés');
   }
+};
+
+// Fonction pour forcer un nettoyage complet de l'état d'authentification
+export const forceAuthCleanup = async () => {
+  console.log('Début du nettoyage forcé de l\'authentification');
+  
+  try {
+    // Déconnexion Supabase
+    await supabase.auth.signOut();
+  } catch (error) {
+    console.warn('Erreur lors de la déconnexion Supabase:', error);
+  }
+  
+  // Nettoyage des cookies
+  clearAuthCookies();
+  
+  // Nettoyage du localStorage si disponible
+  if (typeof localStorage !== 'undefined') {
+    const keysToRemove = [];
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key && (key.includes('supabase') || key.includes('sb-'))) {
+        keysToRemove.push(key);
+      }
+    }
+    keysToRemove.forEach(key => {
+      try {
+        localStorage.removeItem(key);
+      } catch (error) {
+        console.warn('Erreur lors du nettoyage localStorage:', error);
+      }
+    });
+  }
+  
+  // Nettoyage du sessionStorage si disponible
+  if (typeof sessionStorage !== 'undefined') {
+    const keysToRemove = [];
+    for (let i = 0; i < sessionStorage.length; i++) {
+      const key = sessionStorage.key(i);
+      if (key && (key.includes('supabase') || key.includes('sb-'))) {
+        keysToRemove.push(key);
+      }
+    }
+    keysToRemove.forEach(key => {
+      try {
+        sessionStorage.removeItem(key);
+      } catch (error) {
+        console.warn('Erreur lors du nettoyage sessionStorage:', error);
+      }
+    });
+  }
+  
+  console.log('Nettoyage forcé de l\'authentification terminé');
 };
 
 // Fonction pour vérifier si on a des tokens corrompus
@@ -59,4 +149,49 @@ export const hasCorruptedTokens = async () => {
   } catch {
     return true; // En cas d'erreur, considérer comme corrompu
   }
+};
+
+// Fonction pour créer un client Supabase avec gestion d'erreur améliorée pour les composants
+export const createSafeSupabaseClient = () => {
+  return createClient(supabaseUrl, supabaseAnonKey, {
+    auth: {
+      persistSession: true,
+      autoRefreshToken: true,
+      detectSessionInUrl: true,
+      flowType: 'pkce',
+      debug: false
+    },
+    global: {
+      fetch: async (url, options = {}) => {
+        // Timeout plus court et gestion d'erreur améliorée
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 8000); // 8 secondes timeout
+
+        try {
+          const response = await fetch(url, {
+            ...options,
+            signal: controller.signal,
+          });
+          clearTimeout(timeoutId);
+          
+          // Si la réponse n'est pas OK et que c'est une erreur d'auth, ne pas retry
+          if (!response.ok && response.status === 401) {
+            console.warn('Authentication error detected, stopping retries');
+            throw new Error(`Authentication failed: ${response.status}`);
+          }
+          
+          return response;
+        } catch (error) {
+          clearTimeout(timeoutId);
+          
+          // Ne pas logger les erreurs d'abort pour éviter le spam
+          if (error instanceof Error && error.name !== 'AbortError') {
+            console.error('Supabase safe fetch error:', error);
+          }
+          
+          throw error;
+        }
+      }
+    }
+  });
 };

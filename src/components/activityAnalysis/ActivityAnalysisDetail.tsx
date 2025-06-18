@@ -2,7 +2,6 @@
 
 import AnalyseGeneral from './AnalyseGeneral';
 import AltitudeAllure from './AltitudeAllure';
-import HeartRate from './HeartRate';
 
 type Activity = {
   id: string;
@@ -50,18 +49,11 @@ export default function ActivityAnalysisDetail({ activity, onBackAction }: Activ
               <div className="p-3 rounded-lg border border-gray-200 shadow-sm bg-gray-50">
                 <AnalyseGeneral activity={activity} />
               </div>
-            </div>
-
-            {/* Graphiques - répartis sur 3 colonnes */}
+            </div>            {/* Graphiques - répartis sur 3 colonnes */}
             <div className="lg:col-span-3 space-y-4">
               {/* Analyse de l'allure avec profil d'altitude */}
               <div className="p-3 rounded-lg border border-gray-200 shadow-sm bg-white">
                 <AltitudeAllure activity={activity} />
-              </div>
-
-              {/* Analyse de la fréquence cardiaque */}
-              <div className="p-3 rounded-lg border border-gray-200 shadow-sm bg-white">
-                <HeartRate activity={activity} />
               </div>
             </div>
           </div>

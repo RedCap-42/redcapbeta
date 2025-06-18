@@ -99,9 +99,28 @@ const ShoesIcon = () => (
   </svg>
 );
 
+
+
+// Icône pour la page Training Plan
+const TrainingPlanIcon = () => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    fill="none"
+    viewBox="0 0 24 24"
+    strokeWidth={1.5}
+    stroke="currentColor"
+    className="w-6 h-6"
+  >
+    <path
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5a2.25 2.25 0 002.25-2.25m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5a2.25 2.25 0 002.25 2.25v7.5m-9-6h.008v.008H12V12zm0 3h.008v.008H12V15zm0 3h.008v.008H12V18zm3-6h.008v.008H15V12zm0 3h.008v.008H15V15zm0 3h.008v.008H15V18zm3-6h.008v.008H18V12zm0 3h.008v.008H18V15zm0 3h.008v.008H18V18z"
+    />
+  </svg>
+);
+
 export default function Sidebar() {
-  const pathname = usePathname();
-  const menuItems: MenuItem[] = [
+  const pathname = usePathname();  const menuItems: MenuItem[] = [
     {
       name: 'Accueil',
       href: '/dashboard',
@@ -125,7 +144,11 @@ export default function Sidebar() {
     {
       name: 'Chaussures',
       href: '/dashboard/chaussures',
-      icon: <ShoesIcon />,
+      icon: <ShoesIcon />,    },
+    {
+      name: 'Training Plan',
+      href: '/dashboard/training-plan',
+      icon: <TrainingPlanIcon />,
     },
     // Vous pourrez ajouter d'autres éléments de menu ici plus tard
   ];
