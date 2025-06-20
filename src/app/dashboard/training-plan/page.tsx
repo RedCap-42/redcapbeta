@@ -1,4 +1,4 @@
-import TrainingCalendar from '@/components/TrainingCalendar';
+import TrainingCalendar from '@/components/calendar/TrainingCalendar';
 
 export default function TrainingPlanPage() {
   return (

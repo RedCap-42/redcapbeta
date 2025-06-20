@@ -3,23 +3,26 @@
 import { useAuth } from '@/context/AuthContext';
 import VolumeChart from '@/components/widgets/volumeWidget/VolumeChart';
 import TrainingTypeChart from '@/components/widgets/trainingTypeWidget/TrainingTypeChart';
+import PersonalDataWidget from '@/components/widgets/personalDataWidget/PersonalDataWidget';
 
 export default function StatsPage() {
   // useAuth est conservé pour une utilisation future potentielle
   const { /* user */ } = useAuth();
+
   return (
     <div className="container mx-auto p-6">
-      <h1 className="text-2xl font-bold mb-6">Statistiques</h1>
-
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
+      <h1 className="text-2xl font-bold mb-6">Statistiques</h1>      <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6 items-start">
         {/* Widget de volume d'entraînement */}
         <div className="col-span-1 h-fit">
           <VolumeChart />
-        </div>
-
-        {/* Widget de type d'entraînements */}
+        </div>        {/* Widget de type d'entraînements */}
         <div className="col-span-1 h-fit">
           <TrainingTypeChart />
+        </div>
+
+        {/* Widget des données physiques */}
+        <div className="col-span-1 lg:col-span-2 xl:col-span-1 h-fit">
+          <PersonalDataWidget />
         </div>
       </div>
 

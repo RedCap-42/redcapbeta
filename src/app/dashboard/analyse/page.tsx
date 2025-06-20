@@ -1,10 +1,10 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
-import ActivityCalendar from "@/components/ActivityCalendar";
-import ActivityDetail from "@/components/ActivityDetail";
+import ActivityCalendar from "@/components/activity/ActivityCalendar";
+import ActivityDetail from "@/components/activity/ActivityDetail";
 import ActivityAnalysisDetail from "@/components/activityAnalysis/ActivityAnalysisDetail";
 
 // Type pour les activités
@@ -32,12 +32,25 @@ interface CalendarActivity {
   user_id: string;
 }
 
+// Interface pour la dernière activité
+interface LastActivity {
+  id: string;
+  activity_id: number;
+  activity_name: string;
+  activity_type: string;
+  start_time: string;
+  duration: number;
+  distance: number;
+  fit_file_path: string;
+}
+
 export default function AnalysePage() {
   // États
   const [isLoading, setIsLoading] = useState(true);
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [selectedActivity, setSelectedActivity] = useState<Activity | null>(null);
   const [isDetailedAnalysisMode, setIsDetailedAnalysisMode] = useState(false);
+  const [lastActivity, setLastActivity] = useState<LastActivity | null>(null);
 
   // Log component render and state
   console.log(
@@ -46,14 +59,39 @@ export default function AnalysePage() {
 
   // Auth et base de données
   const { user } = useAuth();
-  const supabase = createClientComponentClient();  // Effet pour vérifier l'authentification et récupérer une activité depuis le training plan
+  const supabase = createClientComponentClient();
+  // Fonction pour récupérer la dernière activité
+  const fetchLastActivity = useCallback(async () => {
+    if (!user) return;
+    
+    try {
+      const { data, error } = await supabase
+        .from('garmin_activities')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('start_time', { ascending: false })
+        .limit(1)
+        .single();
+
+      if (error && error.code !== 'PGRST116') {
+        console.error('Erreur lors de la récupération de la dernière activité:', error);
+        return;
+      }
+
+      if (data) {
+        setLastActivity(data);
+      }
+    } catch (err) {
+      console.error('Erreur lors de la récupération de la dernière activité:', err);
+    }
+  }, [user, supabase]);
+
+  // Effet pour vérifier l'authentification et récupérer une activité depuis le training plan ou les stats
   useEffect(() => {
     if (!user) {
       setIsLoading(false);
       return;
-    }
-
-    // Vérifier s'il y a une activité sélectionnée depuis le training plan
+    }    // Vérifier s'il y a une activité sélectionnée depuis le training plan
     const trainingPlanData = sessionStorage.getItem('trainingPlanSelectedActivity');
     if (trainingPlanData) {
       try {
@@ -76,8 +114,10 @@ export default function AnalysePage() {
       }
     }
     
-    setIsLoading(false);
-  }, [user]);
+    // Charger la dernière activité
+    fetchLastActivity();
+      setIsLoading(false);
+  }, [user, fetchLastActivity]);
 
   // Effets pour charger l'activité lorsque la date change
   useEffect(() => {
@@ -162,6 +202,49 @@ export default function AnalysePage() {
     setSelectedActivity(adaptedActivity);
   }
 
+  // Fonction pour formater la durée
+  const formatDuration = (seconds: number): string => {
+    const hours = Math.floor(seconds / 3600);
+    const minutes = Math.floor((seconds % 3600) / 60);
+    
+    if (hours > 0) {
+      return `${hours}h${minutes.toString().padStart(2, '0')}`;
+    }
+    return `${minutes}min`;
+  };
+
+  // Fonction pour formater la distance
+  const formatDistance = (meters: number): string => {
+    return `${(meters / 1000).toFixed(2)} km`;
+  };
+
+  // Fonction pour formater la date
+  const formatDate = (dateString: string): string => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString('fr-FR', {
+      day: '2-digit',
+      month: 'short',
+      year: 'numeric'
+    });
+  };  // Fonction pour analyser directement la dernière activité
+  const handleAnalyzeLastActivity = () => {
+    if (lastActivity) {
+      // Adapter le format de l'activité
+      const adaptedActivity: Activity = {
+        id: lastActivity.id,
+        activity_id: lastActivity.activity_id,
+        start_time: lastActivity.start_time,
+        name: lastActivity.activity_name || '',
+        distance: lastActivity.distance,
+        duration: lastActivity.duration,
+        sport_type: lastActivity.activity_type || '',
+        elevation_gain: null
+      };
+      setSelectedActivity(adaptedActivity);
+      setIsDetailedAnalysisMode(true);
+    }
+  };
+
   // Affichage pendant le chargement
   if (isLoading) {
     return (
@@ -180,31 +263,83 @@ export default function AnalysePage() {
       </div>
     );
   }
-
   // Interface principale avec widgets (Phase 1)
   console.log("AnalysePage: RENDERING Phase 1 (Calendar and ActivityDetail)");
-  return (
-    <div className="container mx-auto p-4">
-      <h1 className="text-2xl font-bold mb-6">Analyse des activités</h1>
-
-      {isDetailedAnalysisMode && selectedActivity ? (
-        <ActivityAnalysisDetail activity={selectedActivity} onBackAction={() => setIsDetailedAnalysisMode(false)} />
-      ) : (
-        <div className="flex flex-col md:flex-row gap-4">
-          <div>
+  return (    <div className="container mx-auto p-6">
+      <div className="mb-6">
+        <h1 className="text-3xl font-bold text-gray-900 mb-2">Analyse des activités</h1>
+        <p className="text-gray-600">Sélectionnez une activité depuis le calendrier pour l&apos;analyser en détail</p>
+      </div>      <div className="grid grid-cols-1 lg:grid-cols-2 gap-1">
+        {/* Calendrier des activités - Section principale */}
+        <div className="lg:col-span-1">
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 w-fit">
+            <h2 className="text-lg font-semibold text-gray-800 mb-3">Calendrier des activités</h2>
             <ActivityCalendar
               onDateSelect={handleDateSelect}
               onActivitySelect={handleActivitySelect}
             />
           </div>
-          <div>
-            <ActivityDetail
-              activity={selectedActivity}
-              onAnalyze={handleAnalyzeActivity}
-            />
+        </div>        {/* Panneau latéral avec les 2 widgets alignés et compacts */}
+        <div className="lg:col-span-1 grid grid-cols-1 gap-2">
+          {/* Détails de l'activité sélectionnée - Version compacte */}
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200 h-fit max-w-80">
+            <div className="p-3">
+              <h3 className="text-base font-semibold text-gray-800 mb-2">Détails de l&apos;activité</h3>
+              <ActivityDetail
+                activity={selectedActivity}
+                onAnalyze={handleAnalyzeActivity}
+              />
+            </div>
+          </div>
+          
+          {/* Section Dernière activité - Version compacte */}
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200 h-fit max-w-80">
+            <div className="p-3">
+              <h3 className="text-base font-semibold text-gray-800 mb-2">Dernière activité</h3>
+              
+              {lastActivity ? (
+                <div className="space-y-3">
+                  <div>
+                    <h4 className="font-medium text-gray-900 truncate text-sm mb-1">{lastActivity.activity_name}</h4>
+                    <span className="inline-block px-2 py-1 text-xs font-medium bg-blue-100 text-blue-800 rounded-full">
+                      {lastActivity.activity_type}
+                    </span>
+                  </div>
+                  
+                  <div className="space-y-1">
+                    <div className="flex justify-between items-center">
+                      <span className="text-xs text-gray-600">Date</span>
+                      <span className="text-xs font-medium text-gray-900">{formatDate(lastActivity.start_time)}</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-xs text-gray-600">Durée</span>
+                      <span className="text-xs font-medium text-gray-900">{formatDuration(lastActivity.duration)}</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-xs text-gray-600">Distance</span>
+                      <span className="text-xs font-medium text-gray-900">{formatDistance(lastActivity.distance)}</span>
+                    </div>
+                  </div>                  <button
+                    onClick={handleAnalyzeLastActivity}
+                    className="w-full mt-3 px-3 py-2 bg-indigo-600 text-white text-xs font-medium rounded-lg hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition-colors duration-200"
+                  >
+                    Analyser cette activité
+                  </button>
+                </div>
+              ) : (
+                <div className="flex flex-col items-center justify-center py-4 text-center">
+                  <div className="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center mb-2">
+                    <svg className="w-4 h-4 text-gray-400" fill="none" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" viewBox="0 0 24 24" stroke="currentColor">
+                      <path d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    </svg>
+                  </div>
+                  <p className="text-gray-500 text-xs">Aucune activité trouvée</p>
+                </div>
+              )}
+            </div>
           </div>
         </div>
-      )}
+      </div>
     </div>
   );
 }

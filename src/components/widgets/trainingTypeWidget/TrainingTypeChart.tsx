@@ -16,6 +16,7 @@ import {
 } from 'chart.js';
 import { Line } from 'react-chartjs-2';
 import DisplayModeToggle from './DisplayModeToggle';
+import TrainingTypeChartModal from './TrainingTypeChartModal';
 
 // Enregistrer les composants nécessaires pour Chart.js
 ChartJS.register(
@@ -49,6 +50,7 @@ export default function TrainingTypeChart() {
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [showByMonth, setShowByMonth] = useState<boolean>(false);
+  const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
   const supabase = createClientComponentClient();
 
   // Obtenir le début de la semaine (lundi) pour une date donnée
@@ -140,9 +142,7 @@ export default function TrainingTypeChart() {
       // Marquer cette entrée comme début de mois
       result[index].isFirstOfMonth = true;
       result[index].month = monthName;
-    }
-
-    return result;
+    }    return result;
   }, []);
 
   // Correction du useEffect pour inclure la dépendance manquante addMonthInfo
@@ -152,17 +152,21 @@ export default function TrainingTypeChart() {
         setIsLoading(true);
 
         // Récupérer l'utilisateur connecté
-        const { data: { user } } = await supabase.auth.getUser();
-
-        if (!user) {
+        const { data: { user } } = await supabase.auth.getUser();        if (!user) {
           throw new Error('Utilisateur non connecté');
         }
 
-        // Récupérer les activités de l'utilisateur
+        // Calculer la date d'il y a 3 mois
+        const threeMonthsAgo = new Date();
+        threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
+        const threeMonthsAgoISOString = threeMonthsAgo.toISOString();
+
+        // Récupérer les activités des 3 derniers mois
         const { data: activities, error } = await supabase
             .from('garmin_activities')
             .select('activity_type, start_time')
             .eq('user_id', user.id)
+            .gte('start_time', threeMonthsAgoISOString)
             .order('start_time', { ascending: true });
 
         if (error) {
@@ -255,7 +259,6 @@ export default function TrainingTypeChart() {
 
     fetchTrainingTypeData();
   }, [supabase, addMonthInfo]);
-
   // Préparer les données pour le graphique selon le mode d'affichage
   const chartData = {
     labels: showByMonth
@@ -302,8 +305,10 @@ export default function TrainingTypeChart() {
       },
     ]
   };
-
   const chartOptions = {
+    onClick: () => {
+      setIsModalOpen(true);
+    },
     plugins: {
       title: {
         display: false,
@@ -396,8 +401,8 @@ export default function TrainingTypeChart() {
     interaction: {
       mode: 'nearest' as const,
       axis: 'x' as const,
-      intersect: false
-    }  };
+      intersect: false    }
+  };
 
   if (isLoading) {
     return (
@@ -431,20 +436,27 @@ export default function TrainingTypeChart() {
           <p className="text-gray-500 text-sm text-center">Synchronisez vos activités pour voir la répartition des types d&apos;entraînement.</p>
         </div>
     );
-  }
-
-  return (
+  }  return (
       <div className="bg-white rounded-lg shadow p-4">
-        <div className="flex flex-col sm:flex-row justify-between gap-2 sm:items-center mb-4">
-          <h3 className="text-lg font-semibold text-gray-800">Types d&apos;entraînements</h3>
+        <div className="flex flex-col sm:flex-row justify-between gap-2 sm:items-start mb-4">
+          <div>
+            <h3 className="text-lg font-semibold text-gray-800">Types d&apos;entraînements</h3>
+            <div className="text-sm text-gray-600">3 derniers mois</div>
+          </div>
           <DisplayModeToggle onChange={setShowByMonth} initialValue={showByMonth} />
         </div>
-        <div className="h-64">
+        <div className="h-64 cursor-pointer relative group">
           <Line data={chartData} options={chartOptions} />
         </div>
         <div className="mt-4 text-sm text-gray-500">
           <p>Ce graphique montre la répartition entre les sorties trail (rouge) et les sorties de course sur route (bleu) par {showByMonth ? 'mois' : 'semaine'}.</p>
         </div>
+
+        {/* Modal pour l'affichage en plein écran */}
+        <TrainingTypeChartModal 
+          isOpen={isModalOpen} 
+          onClose={() => setIsModalOpen(false)} 
+        />
       </div>
   );
 }

@@ -17,6 +17,7 @@ import {
 } from 'chart.js';
 import { extractElevationGain } from '@/utils/fitFileProcessor';
 import ElevationToggle from './ElevationToggle';
+import VolumeChartModal from './VolumeChartModal';
 
 // Enregistrer les composants nécessaires pour Chart.js
 ChartJS.register(
@@ -55,6 +56,7 @@ export default function VolumeChart() {
   const [error, setError] = useState<string | null>(null);
   const [showElevation, setShowElevation] = useState(false);
   const [processingElevation, setProcessingElevation] = useState(false);
+  const [isModalOpen, setIsModalOpen] = useState(false);
   const { user } = useAuth();
   const supabase = createClientComponentClient();
 
@@ -305,7 +307,6 @@ export default function VolumeChart() {
       setProcessingElevation(false);
     }
   }, [user, updateActivityElevation]);
-
   // fetchActivities défini APRÈS groupActivitiesByWeek qui est utilisé à l'intérieur
   const fetchActivities = useCallback(async () => {
     if (!user) return;
@@ -314,11 +315,17 @@ export default function VolumeChart() {
       setIsLoading(true);
       setError(null);
 
-      // Récupérer toutes les activités de course à pied de l'utilisateur
+      // Calculer la date d'il y a 3 mois
+      const threeMonthsAgo = new Date();
+      threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
+      const threeMonthsAgoISOString = threeMonthsAgo.toISOString();
+
+      // Récupérer les activités des 3 derniers mois
       const { data, error } = await supabase
           .from('garmin_activities')
           .select('id, activity_id, start_time, distance, fit_file_path, elevation_gain')
           .eq('user_id', user.id)
+          .gte('start_time', threeMonthsAgoISOString)
           .order('start_time', { ascending: true });
 
       if (error) throw error;
@@ -382,13 +389,15 @@ export default function VolumeChart() {
           yAxisID: 'y1'
         }
       ] : [])
-    ]
-  };
+    ]  };
 
   // Options du graphique
   const chartOptions = {
     responsive: true,
     maintainAspectRatio: false,
+    onClick: () => {
+      setIsModalOpen(true);
+    },
     plugins: {
       legend: {
         display: showElevation,
@@ -537,9 +546,11 @@ export default function VolumeChart() {
   const totalVolume = weeklyVolumes.reduce((sum, week) => sum + week.totalDistance, 0).toFixed(1);
   const totalElevation = weeklyVolumes.reduce((sum, week) => sum + week.totalElevation, 0);
   return (
-      <div className="bg-white rounded-lg shadow p-4">
-        <div className="flex flex-col sm:flex-row justify-between gap-2 sm:items-center mb-3">
-          <h3 className="text-lg font-semibold text-gray-800">Volume d&apos;entraînement hebdomadaire</h3>
+      <div className="bg-white rounded-lg shadow p-4">        <div className="flex flex-col sm:flex-row justify-between gap-2 sm:items-start mb-3">
+          <div>
+            <h3 className="text-lg font-semibold text-gray-800">Volume d&apos;entraînement hebdomadaire</h3>
+            <div className="text-sm text-gray-600">3 derniers mois</div>
+          </div>
           <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
             <ElevationToggle onChange={setShowElevation} initialValue={showElevation} />
             <div className="flex items-center space-x-3 text-sm font-medium">
@@ -563,11 +574,15 @@ export default function VolumeChart() {
               </svg>
               <span>Calcul des données de dénivelé en cours...</span>
             </div>
-        )}
-
-        <div className="h-64"> {/* Hauteur standardisée pour le graphique */}
+        )}        <div className="h-64 cursor-pointer relative group"> {/* Hauteur standardisée pour le graphique */}
           <Line data={chartData} options={chartOptions} />
         </div>
+
+        {/* Modal pour l'affichage en plein écran */}
+        <VolumeChartModal 
+          isOpen={isModalOpen} 
+          onClose={() => setIsModalOpen(false)} 
+        />
       </div>
   );
 }

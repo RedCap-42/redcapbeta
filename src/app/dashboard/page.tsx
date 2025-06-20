@@ -1,6 +1,6 @@
 'use client';
 
-import GarminCredentialsForm from '@/components/GarminCredentialsForm';
+import GarminCredentialsForm from '@/components/forms/GarminCredentialsForm';
 
 export default function DashboardHome() {
   return (

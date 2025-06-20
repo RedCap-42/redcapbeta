@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
 import { useRouter } from 'next/navigation';
-import Auth from '@/components/Auth';
+import Auth from '@/components/auth/Auth';
 import { retryWithBackoff } from '@/utils/retryWithBackoff';
 
 export default function Home() {
