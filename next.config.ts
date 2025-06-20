@@ -9,6 +9,24 @@ const nextConfig: NextConfig = {
     rules: {},
   },
   
+  // Image configuration for external domains
+  images: {
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: 'images.openfoodfacts.org',
+        port: '',
+        pathname: '/**',
+      },
+      {
+        protocol: 'https',
+        hostname: 'static.openfoodfacts.org',
+        port: '',
+        pathname: '/**',
+      },
+    ],
+  },
+  
   // Ensure proper headers for authentication
   async headers() {
     return [
