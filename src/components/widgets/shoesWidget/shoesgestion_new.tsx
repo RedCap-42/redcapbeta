@@ -17,7 +17,6 @@ import EditShoes from './editshoes';
 import { LinkShoes } from './linkshoes';
 import ManualKmHistory from './ManualKmHistory';
 import ShoesGraph from './shoesgraph';
-import FolderDetailView from './FolderDetailView';
 
 interface Shoe {
   id: string;
@@ -89,7 +88,8 @@ export default function ShoesGestion() {
   // États pour le graphique d'utilisation
   const [isShoesGraphOpen, setIsShoesGraphOpen] = useState(false);
   const [shoeForGraph, setShoeForGraph] = useState<Shoe | null>(null);
-    // États pour les dossiers
+  
+  // États pour les dossiers
   const [isCreateFolderModalOpen, setIsCreateFolderModalOpen] = useState(false);
   const [newFolderForm, setNewFolderForm] = useState({
     name: '',
@@ -97,10 +97,6 @@ export default function ShoesGestion() {
     color: '#3B82F6'
   });
   const [isCreatingFolder, setIsCreatingFolder] = useState(false);
-  
-  // États pour la vue détaillée d'un dossier
-  const [selectedFolder, setSelectedFolder] = useState<ShoesFolder | null>(null);
-  const [isFolderDetailOpen, setIsFolderDetailOpen] = useState(false);
 
   const supabase = createClientComponentClient();
 
@@ -333,20 +329,10 @@ export default function ShoesGestion() {
     setShoeForHistory(shoe);
     setIsManualKmHistoryOpen(true);
   };
+
   const handleViewShoesGraph = (shoe: Shoe) => {
     setShoeForGraph(shoe);
     setIsShoesGraphOpen(true);
-  };
-
-  // Handlers pour la vue détaillée d'un dossier
-  const handleOpenFolder = (folder: ShoesFolder) => {
-    setSelectedFolder(folder);
-    setIsFolderDetailOpen(true);
-  };
-
-  const handleCloseFolderDetail = () => {
-    setSelectedFolder(null);
-    setIsFolderDetailOpen(false);
   };
 
   const handleConfirmAddKm = async () => {
@@ -509,12 +495,9 @@ export default function ShoesGestion() {
           <div className="space-y-6">
             {/* Dossiers */}
             {folders.map((folder) => (
-              <div key={folder.id} className="border rounded-lg p-4" style={{ borderColor: folder.color }}>                <div className="flex items-center justify-between mb-3">
-                  <div 
-                    className="flex items-center space-x-3 cursor-pointer hover:bg-gray-50 rounded-lg px-3 py-2 transition-colors flex-1"
-                    onClick={() => handleOpenFolder(folder)}
-                    title={`Ouvrir le dossier "${folder.name}"`}
-                  >
+              <div key={folder.id} className="border rounded-lg p-4" style={{ borderColor: folder.color }}>
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center space-x-3">
                     <div 
                       className="w-6 h-6 rounded flex items-center justify-center"
                       style={{ backgroundColor: folder.color }}
@@ -522,26 +505,19 @@ export default function ShoesGestion() {
                       <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 24 24">
                         <path d="M2 6a2 2 0 012-2h5l2 2h5a2 2 0 012 2v6a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" />
                       </svg>
-                    </div>                    <h3 className="font-medium text-gray-900">{folder.name}</h3>
-                    <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-600 ml-2">
-                      {(folderItems[folder.id] || []).length} chaussure{(folderItems[folder.id] || []).length !== 1 ? 's' : ''}
-                    </span>
+                    </div>
+                    <h3 className="font-medium text-gray-900">{folder.name}</h3>
                     {folder.description && (
                       <span className="text-sm text-gray-500">- {folder.description}</span>
                     )}
-                    <svg className="w-4 h-4 text-gray-400 ml-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" />
-                    </svg>
                   </div>
                   <button
                     onClick={() => handleDeleteFolder(folder)}
-                    className="text-red-600 hover:text-red-800 text-sm ml-2"
+                    className="text-red-600 hover:text-red-800 text-sm"
                   >
                     Supprimer
                   </button>
-                </div>
-
-                <Droppable droppableId={`folder-${folder.id}`}>
+                </div>                <Droppable droppableId={`folder-${folder.id}`}>
                   {(provided: DroppableProvided, snapshot: DroppableStateSnapshot) => (
                     <div
                       {...provided.droppableProps}
@@ -553,8 +529,7 @@ export default function ShoesGestion() {
                       }`}
                     >
                       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                        {(folderItems[folder.id] || []).map((item, index) => (
-                          <Draggable key={item.shoe.id} draggableId={`shoe-${item.shoe.id}`} index={index}>
+                        {(folderItems[folder.id] || []).map((item, index) => (                        <Draggable key={item.shoe.id} draggableId={`shoe-${item.shoe.id}`} index={index}>
                             {(provided: DraggableProvided, snapshot: DraggableStateSnapshot) => (
                               <div
                                 ref={provided.innerRef}
@@ -588,8 +563,7 @@ export default function ShoesGestion() {
             <div className="border rounded-lg p-4 border-gray-300">
               <h3 className="font-medium text-gray-900 mb-3">
                 {folders.length > 0 ? 'Chaussures non organisées' : 'Mes chaussures'}
-              </h3>
-              <Droppable droppableId="unorganized">
+              </h3>              <Droppable droppableId="unorganized">
                 {(provided: DroppableProvided, snapshot: DroppableStateSnapshot) => (
                   <div
                     {...provided.droppableProps}
@@ -601,33 +575,18 @@ export default function ShoesGestion() {
                     }`}
                   >
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                      {unorganizedShoes.map((shoe, index) => (
-                        <Draggable key={shoe.id} draggableId={`shoe-${shoe.id}`} index={index}>
-                          {(provided: DraggableProvided, snapshot: DraggableStateSnapshot) => (                            <div
+                      {unorganizedShoes.map((shoe, index) => (                        <Draggable key={shoe.id} draggableId={`shoe-${shoe.id}`} index={index}>
+                          {(provided: DraggableProvided, snapshot: DraggableStateSnapshot) => (
+                            <div
                               ref={provided.innerRef}
                               {...provided.draggableProps}
                               {...provided.dragHandleProps}
-                              className={`bg-white rounded-xl border border-gray-200 transition-all duration-200 overflow-hidden flex flex-col h-full cursor-move ${
+                              className={`bg-white rounded-xl shadow-sm border border-gray-200 hover:shadow-md transition-all duration-200 overflow-hidden flex flex-col h-full cursor-move ${
                                 snapshot.isDragging ? 'shadow-lg' : ''
                               }`}
-                              style={{
-                                boxShadow: snapshot.isDragging ? '0 8px 24px rgba(0, 0, 0, 0.25)' : '0 4px 12px rgba(0, 0, 0, 0.15)',
-                                transition: 'all 0.2s ease-in-out'
-                              }}
-                              onMouseEnter={(e) => {
-                                if (!snapshot.isDragging) {
-                                  e.currentTarget.style.boxShadow = '0 8px 24px rgba(0, 0, 0, 0.25)';
-                                  e.currentTarget.style.transform = 'translateY(-2px)';
-                                }
-                              }}
-                              onMouseLeave={(e) => {
-                                if (!snapshot.isDragging) {
-                                  e.currentTarget.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.15)';
-                                  e.currentTarget.style.transform = 'translateY(0)';
-                                }
-                              }}
                             >
-                              {/* Header avec icône */}                              <div className="bg-white px-6 py-4 border-b border-gray-100" style={{ boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)' }}>
+                              {/* Header avec icône */}
+                              <div className="bg-gradient-to-r from-blue-50 to-indigo-50 px-6 py-4 border-b border-gray-100">
                                 <div className="flex items-center space-x-3">
                                   <div className="flex-shrink-0 w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
                                     <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -751,44 +710,15 @@ export default function ShoesGestion() {
             </div>
           </div>
         </DragDropContext>
-      )}      {/* Modal de création de dossier */}
-      {isCreateFolderModalOpen && (
-        <>
-          {/* Arrière-plan flou */}
-          <div 
-            className="fixed inset-0 z-[60] bg-black/20 backdrop-blur-md transition-all duration-300 w-screen h-screen" 
-            onClick={() => {
-              setIsCreateFolderModalOpen(false);
-              setNewFolderForm({ name: '', description: '', color: '#3B82F6' });
-              setError('');
-            }}
-          />
-          
-          {/* Contenu du modal */}
-          <div className="fixed inset-0 z-[70] flex items-center justify-center p-6 pointer-events-none w-screen h-screen">
-            <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-300 pointer-events-auto">
-              {/* Header */}
-              <div className="flex items-center justify-between p-6 border-b border-gray-200 bg-white" style={{ boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)' }}>
-                <div>
-                  <h3 className="text-lg font-medium text-gray-900">Créer un nouveau dossier</h3>
-                  <p className="text-sm text-gray-600 mt-1">Organisez vos chaussures par catégorie</p>
-                </div>
-                <button
-                  onClick={() => {
-                    setIsCreateFolderModalOpen(false);
-                    setNewFolderForm({ name: '', description: '', color: '#3B82F6' });
-                    setError('');
-                  }}
-                  className="text-gray-400 hover:text-gray-600 transition-colors"
-                >
-                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                  </svg>
-                </button>
-              </div>
+      )}
 
-              {/* Formulaire */}
-              <div className="p-6 space-y-4">
+      {/* Modal de création de dossier */}
+      {isCreateFolderModalOpen && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 w-full max-w-md">
+            <h3 className="text-lg font-medium text-gray-900 mb-4">Créer un nouveau dossier</h3>
+            
+            <div className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Nom du dossier *
@@ -831,31 +761,30 @@ export default function ShoesGestion() {
                     />
                   ))}
                 </div>
-              </div>              </div>
-
-              {/* Boutons d'action */}
-              <div className="flex space-x-3 px-6 py-4 bg-gray-50 border-t border-gray-200">
-                <button
-                  onClick={() => {
-                    setIsCreateFolderModalOpen(false);
-                    setNewFolderForm({ name: '', description: '', color: '#3B82F6' });
-                    setError('');
-                  }}
-                  className="flex-1 px-4 py-3 text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors font-medium"
-                >
-                  Annuler
-                </button>
-                <button
-                  onClick={handleCreateFolder}
-                  disabled={isCreatingFolder}
-                  className="flex-1 px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-colors font-medium"
-                >
-                  {isCreatingFolder ? 'Création...' : 'Créer'}
-                </button>
               </div>
             </div>
+
+            <div className="flex space-x-3 mt-6">
+              <button
+                onClick={() => {
+                  setIsCreateFolderModalOpen(false);
+                  setNewFolderForm({ name: '', description: '', color: '#3B82F6' });
+                  setError('');
+                }}
+                className="flex-1 px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+              >
+                Annuler
+              </button>
+              <button
+                onClick={handleCreateFolder}
+                disabled={isCreatingFolder}
+                className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-colors"
+              >
+                {isCreatingFolder ? 'Création...' : 'Créer'}
+              </button>
+            </div>
           </div>
-        </>
+        </div>
       )}
 
       {/* Modaux pour les chaussures */}
@@ -870,8 +799,9 @@ export default function ShoesGestion() {
         onClose={() => setIsEditModalOpen(false)}
         onShoesUpdated={handleShoesUpdated}
         shoe={selectedShoe}
-      />      {shoeForLinking && (
-        <LinkShoes
+      />
+
+      {shoeForLinking && (        <LinkShoes
           shoe={shoeForLinking}
           isOpen={isLinkShoesModalOpen}
           onClose={() => {
@@ -906,57 +836,17 @@ export default function ShoesGestion() {
           setIsShoesGraphOpen(false);
           setShoeForGraph(null);
         }}
-      />      {/* Modal pour ajouter des kilomètres manuels */}
+      />
+
+      {/* Modal pour ajouter des kilomètres manuels */}
       {isAddKmModalOpen && shoeForKmUpdate && (
-        <>
-          {/* Arrière-plan flou */}
-          <div 
-            className="fixed inset-0 z-[60] bg-black/20 backdrop-blur-md transition-all duration-300 w-screen h-screen" 
-            onClick={handleCancelAddKm}
-          />
-          
-          {/* Contenu du modal */}
-          <div className="fixed inset-0 z-[70] flex items-center justify-center p-6 pointer-events-none w-screen h-screen">            <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-300 pointer-events-auto">
-              {/* Header */}
-              <div className="flex items-center justify-between p-6 border-b border-gray-200 bg-gradient-to-r from-green-50 to-emerald-50">
-                <div>
-                  <h3 className="text-lg font-medium text-gray-900">
-                    Ajouter des kilomètres
-                  </h3>
-                  <p className="text-sm text-gray-600 mt-1">
-                    {shoeForKmUpdate.name}
-                  </p>
-                </div>
-                <button
-                  onClick={handleCancelAddKm}
-                  className="text-gray-400 hover:text-gray-600 transition-colors"
-                >
-                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                  </svg>
-                </button>
-              </div>
-
-              {/* Stats actuelles */}
-              <div className="px-6 py-4 bg-gray-50 border-b border-gray-200">
-                <div className="grid grid-cols-3 gap-4 text-center text-sm">
-                  <div>
-                    <p className="text-gray-500">Manuel</p>
-                    <p className="font-semibold text-green-600">{formatKilometers(shoeForKmUpdate.manual_kilometers)} km</p>
-                  </div>
-                  <div>
-                    <p className="text-gray-500">Auto</p>
-                    <p className="font-semibold text-blue-600">{formatKilometers(shoeForKmUpdate.auto_kilometers)} km</p>
-                  </div>
-                  <div>
-                    <p className="text-gray-500">Total</p>
-                    <p className="font-semibold text-purple-600">{formatKilometers(shoeForKmUpdate.total_kilometers)} km</p>
-                  </div>
-                </div>
-              </div>
-
-              {/* Formulaire */}
-              <div className="p-6 space-y-4">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 w-full max-w-md">
+            <h3 className="text-lg font-medium text-gray-900 mb-4">
+              Ajouter des kilomètres - {shoeForKmUpdate.name}
+            </h3>
+            
+            <div className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Kilomètres *
@@ -971,8 +861,7 @@ export default function ShoesGestion() {
                 />
               </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+              <div>                <label className="block text-sm font-medium text-gray-700 mb-1">
                   Titre de l&apos;activité *
                 </label>
                 <input
@@ -997,8 +886,7 @@ export default function ShoesGestion() {
                 />
               </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+              <div>                <label className="block text-sm font-medium text-gray-700 mb-1">
                   Date de l&apos;activité
                 </label>
                 <input
@@ -1007,44 +895,26 @@ export default function ShoesGestion() {
                   onChange={(e) => setManualKmForm({ ...manualKmForm, activity_date: e.target.value })}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 />
-              </div>              </div>
-
-              {/* Boutons d'action */}
-              <div className="flex space-x-3 px-6 py-4 bg-gray-50 border-t border-gray-200">
-                <button
-                  onClick={handleCancelAddKm}
-                  className="flex-1 px-4 py-3 text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors font-medium"
-                >
-                  Annuler
-                </button>
-                <button
-                  onClick={handleConfirmAddKm}
-                  disabled={isAddingKm}
-                  className="flex-1 px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-colors font-medium"
-                >
-                  {isAddingKm ? 'Ajout...' : 'Ajouter'}
-                </button>
               </div>
             </div>
-          </div>        </>
-      )}
 
-      {/* Vue détaillée d'un dossier */}
-      {isFolderDetailOpen && selectedFolder && (
-        <FolderDetailView
-          folder={selectedFolder}
-          items={folderItems[selectedFolder.id] || []}
-          onClose={handleCloseFolderDetail}
-          onRefresh={() => {
-            fetchShoes();
-            fetchFolders();
-          }}
-          onAddKm={handleAddKilometers}
-          onEditShoe={handleEditShoe}
-          onLinkShoe={handleLinkToActivities}
-          onViewHistory={handleViewManualKmHistory}
-          onViewGraph={handleViewShoesGraph}
-        />
+            <div className="flex space-x-3 mt-6">
+              <button
+                onClick={handleCancelAddKm}
+                className="flex-1 px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+              >
+                Annuler
+              </button>
+              <button
+                onClick={handleConfirmAddKm}
+                disabled={isAddingKm}
+                className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-colors"
+              >
+                {isAddingKm ? 'Ajout...' : 'Ajouter'}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
