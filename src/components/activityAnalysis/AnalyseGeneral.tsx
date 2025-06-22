@@ -298,9 +298,7 @@ export default function AnalyseGeneral({ activity }: AnalyseGeneralProps) {
         <div className="p-2 mb-3 bg-red-50 border border-red-300 text-red-700 rounded text-xs">
           {error}
         </div>
-      )}
-
-      <div className="space-y-2">
+      )}      <div className="grid grid-cols-2 md:grid-cols-3 gap-3 max-w-xl">
         <div className="bg-white p-3 rounded-lg shadow-sm border border-gray-200">
           <div className="text-xs text-gray-500 mb-1">Distance</div>
           <div className="font-semibold text-sm text-gray-800">{(activity.distance / 1000).toFixed(2)} km</div>
@@ -322,7 +320,7 @@ export default function AnalyseGeneral({ activity }: AnalyseGeneralProps) {
         </div>
 
         <div className="bg-white p-3 rounded-lg shadow-sm border border-gray-200">
-          <div className="text-xs text-gray-500 mb-1">FC moy.</div>
+          <div className="text-xs text-gray-500 mb-1">FC moy</div>
           <div className="font-semibold text-sm text-gray-800">{heartRate.average ? `${heartRate.average} bpm` : '-'}</div>
         </div>
 

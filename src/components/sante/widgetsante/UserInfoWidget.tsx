@@ -251,47 +251,35 @@ export default function UserInfoWidget() {
         </div>      ) : personalData ? (
         <div className="flex-1 flex flex-col justify-center">
           <div className="grid grid-cols-2 gap-3">
-            <div className="text-center">
-              <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-1">
-                <div className="w-3 h-3 bg-blue-600 rounded"></div>
+            <div className="bg-white p-3 rounded-lg shadow-sm border border-gray-200">
+              <div className="text-xs text-gray-500 mb-1">Taille</div>
+              <div className="font-semibold text-sm text-gray-800">
+                {personalData.height ? `${personalData.height} cm` : '-'}
               </div>
-              <p className="text-xs text-gray-600">Taille</p>
-              <p className="font-semibold text-sm">
-                {personalData.height ? `${personalData.height} cm` : 'N/A'}
-              </p>
             </div>
 
-            <div className="text-center">
-              <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-1">
-                <div className="w-3 h-3 bg-green-600 rounded"></div>
+            <div className="bg-white p-3 rounded-lg shadow-sm border border-gray-200">
+              <div className="text-xs text-gray-500 mb-1">Poids</div>
+              <div className="font-semibold text-sm text-gray-800">
+                {personalData.weight ? `${personalData.weight} kg` : '-'}
               </div>
-              <p className="text-xs text-gray-600">Poids</p>
-              <p className="font-semibold text-sm">
-                {personalData.weight ? `${personalData.weight} kg` : 'N/A'}
-              </p>
             </div>
 
-            <div className="text-center">
-              <div className="w-8 h-8 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-1">
-                <div className="w-3 h-3 bg-purple-600 rounded"></div>
+            <div className="bg-white p-3 rounded-lg shadow-sm border border-gray-200">
+              <div className="text-xs text-gray-500 mb-1">Sexe</div>
+              <div className="font-semibold text-sm text-gray-800">
+                {personalData.gender || '-'}
               </div>
-              <p className="text-xs text-gray-600">Sexe</p>
-              <p className="font-semibold text-sm">
-                {personalData.gender || 'N/A'}
-              </p>
             </div>
 
-            <div className="text-center">
-              <div className="w-8 h-8 bg-orange-100 rounded-full flex items-center justify-center mx-auto mb-1">
-                <div className="w-3 h-3 bg-orange-600 rounded"></div>
+            <div className="bg-white p-3 rounded-lg shadow-sm border border-gray-200">
+              <div className="text-xs text-gray-500 mb-1">Âge</div>
+              <div className="font-semibold text-sm text-gray-800">
+                {personalData.age ? `${personalData.age} ans` : '-'}
               </div>
-              <p className="text-xs text-gray-600">Âge</p>
-              <p className="font-semibold text-sm">
-                {personalData.age ? `${personalData.age} ans` : 'N/A'}
-              </p>
             </div>
           </div>
-        </div>      ) : (
+        </div>) : (
         <div className="flex-1 flex flex-col justify-center items-center text-center">
           <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3">
             <div className="w-4 h-4 bg-gray-400 rounded"></div>

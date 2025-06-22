@@ -5,7 +5,7 @@ import { useAuth } from "@/context/AuthContext";
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
 import ActivityCalendar from "@/components/activity/ActivityCalendar";
 import ActivityDetail from "@/components/activity/ActivityDetail";
-import ActivityAnalysisDetail from "@/components/activityAnalysis/ActivityAnalysisDetail";
+import ActivityAnalysisMain from "@/components/activityAnalysis/ActivityAnalysisMain";
 
 // Type pour les activités
 type Activity = {
@@ -176,14 +176,7 @@ export default function AnalysePage() {
       setIsDetailedAnalysisMode(true);
     } else {
       console.warn("AnalysePage: No selectedActivity. Cannot switch to detailed analysis mode.");
-    }
-  }
-
-  // Fonction pour revenir à la vue principale
-  function handleBackToOverview() {
-    console.log("AnalysePage: handleBackToOverview CALLED. Setting isDetailedAnalysisMode to false.");
-    setIsDetailedAnalysisMode(false);
-  }
+    }  }
 
   // Fonction pour gérer la sélection directe d'une activité
   function handleActivitySelect(activity: CalendarActivity) {
@@ -252,15 +245,24 @@ export default function AnalysePage() {
         <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-indigo-500"></div>
       </div>
     );
-  }
-
-  // Interface d'analyse détaillée (Phase 2)
+  }  // Interface d'analyse détaillée (Phase 2)
   if (isDetailedAnalysisMode && selectedActivity) {
-    console.log("AnalysePage: RENDERING Phase 2 (ActivityAnalysisDetail) for activity:", selectedActivity.id);
+    console.log("AnalysePage: RENDERING Phase 2 (ActivityAnalysisMain) for activity:", selectedActivity.id);
+    
+    // Adapter l'activité pour le composant
+    const adaptedActivity = {
+      activity_name: selectedActivity.name,
+      start_time: selectedActivity.start_time,
+      distance: selectedActivity.distance,
+      duration: selectedActivity.duration,
+      elevation_gain: selectedActivity.elevation_gain || undefined,
+      id: selectedActivity.id,
+      activity_id: selectedActivity.activity_id,
+      sport_type: selectedActivity.sport_type
+    };
+    
     return (
-      <div className="container mx-auto p-6">
-        <ActivityAnalysisDetail activity={selectedActivity} onBackAction={handleBackToOverview} />
-      </div>
+      <ActivityAnalysisMain initialActivity={adaptedActivity} />
     );
   }
   // Interface principale avec widgets (Phase 1)
@@ -269,20 +271,22 @@ export default function AnalysePage() {
       <div className="mb-6">
         <h1 className="text-3xl font-bold text-gray-900 mb-2">Analyse des activités</h1>
         <p className="text-gray-600">Sélectionnez une activité depuis le calendrier pour l&apos;analyser en détail</p>
-      </div>      <div className="grid grid-cols-1 lg:grid-cols-2 gap-1">
+      </div>      <div className="flex gap-4">
         {/* Calendrier des activités - Section principale */}
-        <div className="lg:col-span-1">
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 w-fit">
+        <div className="flex-shrink-0">
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
             <h2 className="text-lg font-semibold text-gray-800 mb-3">Calendrier des activités</h2>
             <ActivityCalendar
               onDateSelect={handleDateSelect}
               onActivitySelect={handleActivitySelect}
             />
           </div>
-        </div>        {/* Panneau latéral avec les 2 widgets alignés et compacts */}
-        <div className="lg:col-span-1 grid grid-cols-1 gap-2">
+        </div>
+
+        {/* Panneau latéral avec les 2 widgets alignés et compacts */}
+        <div className="flex flex-col gap-2 min-w-80">
           {/* Détails de l'activité sélectionnée - Version compacte */}
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 h-fit max-w-80">
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200 h-fit">
             <div className="p-3">
               <h3 className="text-base font-semibold text-gray-800 mb-2">Détails de l&apos;activité</h3>
               <ActivityDetail
@@ -293,7 +297,7 @@ export default function AnalysePage() {
           </div>
           
           {/* Section Dernière activité - Version compacte */}
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 h-fit max-w-80">
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200 h-fit">
             <div className="p-3">
               <h3 className="text-base font-semibold text-gray-800 mb-2">Dernière activité</h3>
               

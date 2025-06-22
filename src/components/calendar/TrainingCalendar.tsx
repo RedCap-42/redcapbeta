@@ -276,76 +276,103 @@ export default function TrainingCalendar() {
               return (                <div
                   key={index}
                   className={`
-                    min-h-[120px] p-3 rounded-xl border transition-all duration-300
-                    ${day ? 'hover:bg-blue-50/50 cursor-pointer border-gray-100 hover:border-blue-200 hover:shadow-sm' : 'border-transparent'}
-                    ${isToday ? 'bg-blue-50/70 border-blue-300 ring-2 ring-blue-200/50 shadow-sm' : 'bg-white/80 hover:border-gray-200'}
+                    min-h-[140px] p-4 rounded-2xl border-2 transition-all duration-300 backdrop-blur-sm
+                    ${day ? 'hover:bg-gradient-to-br hover:from-blue-50/80 hover:to-indigo-50/60 cursor-pointer border-gray-200/60 hover:border-blue-300/80 hover:shadow-lg hover:-translate-y-0.5' : 'border-transparent'}
+                    ${isToday ? 'bg-gradient-to-br from-blue-100/90 to-indigo-100/70 border-blue-400/70 ring-4 ring-blue-200/30 shadow-lg' : 'bg-gradient-to-br from-white/95 to-gray-50/80 border-gray-150/50'}
                   `}
                 >
                   {day && (
                     <>
-                      <div className={`text-right text-sm mb-3 ${
+                      <div className={`text-right text-sm mb-4 ${
                         isToday 
-                          ? 'font-semibold text-blue-700' 
-                          : 'font-medium text-gray-700'
+                          ? 'font-bold text-blue-800 bg-white/40 rounded-full w-8 h-8 flex items-center justify-center ml-auto shadow-sm' 
+                          : 'font-semibold text-gray-700'
                       }`}>
                         {day}
-                      </div>                      {/* Affichage des activités amélioré */}
-                      <div className="space-y-1">
-                        {dayActivities?.activities.slice(0, 2).map((activity, actIndex) => (                          <div
+                      </div>
+                      
+                      {/* Affichage des activités unifié */}
+                      <div className="space-y-1.5">
+                        {dayActivities?.activities.slice(0, 2).map((activity, actIndex) => (
+                          <div
                             key={actIndex}
-                            className="flex flex-col space-y-0.5 text-xs bg-white/90 rounded-lg px-2 py-1.5 border border-gray-200/60 cursor-pointer hover:bg-blue-50 hover:border-blue-300 hover:shadow-sm transition-all duration-200 backdrop-blur-sm"
-                            title={`Cliquer pour analyser: ${activity.activity_name || 'Activité'} - ${formatDuration(activity.duration || 0)}`}
+                            className="group bg-gradient-to-r from-white via-white to-gray-50/80 rounded-xl p-3 border border-gray-200/70 cursor-pointer hover:shadow-md hover:border-blue-300 hover:from-blue-50 hover:via-blue-50/70 hover:to-indigo-50/50 transition-all duration-300 backdrop-blur-sm"
+                            title={`Cliquer pour analyser: ${activity.activity_name || 'Activité'}`}
                             onClick={(e) => {
-                              e.stopPropagation(); // Empêcher la propagation vers le parent
+                              e.stopPropagation();
                               navigateToAnalyse(activity, new Date(currentDate.getFullYear(), currentDate.getMonth(), day));
                             }}
                           >
-                            <div className="flex items-center space-x-1">
-                              <div 
-                                className={`w-2 h-2 rounded-full flex-shrink-0 ${getActivityColor(activity.activity_type || '')}`}
-                              />
-                              <span className="text-gray-700 truncate flex-1 font-medium">
-                                {activity.activity_name || activity.activity_type || 'Activité'}
-                              </span>
-                              <svg className="w-3 h-3 text-gray-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            {/* En-tête avec nom et indicateur */}
+                            <div className="flex items-center justify-between mb-2">
+                              <div className="flex items-center space-x-2 flex-1 min-w-0">
+                                <div 
+                                  className={`w-3 h-3 rounded-full flex-shrink-0 ${getActivityColor(activity.activity_type || '')} shadow-sm`}
+                                />
+                                <span className="text-gray-800 truncate text-xs font-semibold group-hover:text-blue-700 transition-colors duration-200">
+                                  {activity.activity_name || activity.activity_type || 'Activité'}
+                                </span>
+                              </div>
+                              <svg className="w-3 h-3 text-gray-400 group-hover:text-blue-500 transition-all duration-200 flex-shrink-0 group-hover:translate-x-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                               </svg>
                             </div>
-                            {/* Affichage de l'heure */}
-                            <div className="text-xs text-gray-500 ml-3">
-                              {new Date(activity.start_time).toLocaleTimeString('fr-FR', { 
-                                hour: '2-digit', 
-                                minute: '2-digit' 
-                              })}
+                            
+                            {/* Informations détaillées */}
+                            <div className="flex items-center justify-between text-xs">
+                              <div className="flex items-center space-x-3 text-gray-600">
+                                {/* Heure de début */}
+                                <div className="flex items-center space-x-1">
+                                  <svg className="w-3 h-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                  </svg>
+                                  <span className="font-medium">
+                                    {new Date(activity.start_time).toLocaleTimeString('fr-FR', { 
+                                      hour: '2-digit', 
+                                      minute: '2-digit' 
+                                    })}
+                                  </span>
+                                </div>
+                              </div>
+                              
+                              {/* Durée mise en évidence */}
+                              <div className="bg-blue-100/80 text-blue-700 px-2 py-1 rounded-md font-bold text-xs group-hover:bg-blue-200 transition-colors duration-200">
+                                {formatDuration(activity.duration || 0)}
+                              </div>
                             </div>
                           </div>
                         ))}
                         
-                        {/* Afficher "+" si plus de 2 activités */}
-                        {dayActivities && dayActivities.activities.length > 2 && (                          <div 
-                            className="text-xs text-gray-500 text-center bg-gray-50/80 border border-gray-200/60 rounded-lg py-1.5 cursor-pointer hover:bg-blue-50 hover:border-blue-300 hover:text-blue-600 transition-all duration-200 backdrop-blur-sm"
-                            title="Cliquer pour voir la première activité de ce jour"
+                        {/* Indicateur d'activités supplémentaires */}
+                        {dayActivities && dayActivities.activities.length > 2 && (
+                          <div 
+                            className="group bg-gradient-to-r from-gray-50 to-gray-100/80 border border-gray-200/60 rounded-xl p-2.5 cursor-pointer hover:shadow-md hover:border-blue-300 hover:from-blue-50 hover:to-indigo-50/80 transition-all duration-300 backdrop-blur-sm"
+                            title="Cliquer pour voir toutes les activités de ce jour"
                             onClick={(e) => {
                               e.stopPropagation();
                               navigateToAnalyse(dayActivities.activities[0], new Date(currentDate.getFullYear(), currentDate.getMonth(), day));
                             }}
                           >
-                            +{dayActivities.activities.length - 2} autre{dayActivities.activities.length - 2 > 1 ? 's' : ''}
+                            <div className="flex items-center justify-center space-x-2">
+                              <svg className="w-3 h-3 text-gray-500 group-hover:text-blue-600 transition-colors duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                              </svg>
+                              <span className="text-xs font-medium text-gray-600 group-hover:text-blue-700 transition-colors duration-200">
+                                {dayActivities.activities.length - 2} autre{dayActivities.activities.length - 2 > 1 ? 's' : ''}
+                              </span>
+                            </div>
                           </div>
-                        )}                        
-                        {/* Afficher le temps total si il y a des activités */}
-                        {dayActivities && dayActivities.totalDuration > 0 && (                          <div 
-                            className="text-xs font-bold text-blue-600 text-center mt-2 bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200/60 rounded-lg py-1.5 cursor-pointer hover:from-blue-100 hover:to-indigo-100 hover:border-blue-300 transition-all duration-200 backdrop-blur-sm shadow-sm"
-                            title="Cliquer pour analyser les activités de ce jour"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              navigateToAnalyse(dayActivities.activities[0], new Date(currentDate.getFullYear(), currentDate.getMonth(), day));
-                            }}
-                          >
-                            {formatDuration(dayActivities.totalDuration)}
-                            <svg className="w-3 h-3 inline-block ml-1 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                            </svg>
+                        )}
+                        
+                        {/* Résumé total du jour (affiché uniquement s'il y a plusieurs activités) */}
+                        {dayActivities && dayActivities.activities.length > 1 && (
+                          <div className="mt-2 pt-2 border-t border-gray-200/50">
+                            <div className="flex items-center justify-between text-xs">
+                              <span className="text-gray-500 font-medium">Total jour:</span>
+                              <div className="bg-gradient-to-r from-green-100 to-emerald-100 text-green-700 px-2 py-1 rounded-md font-bold">
+                                {formatDuration(dayActivities.totalDuration)}
+                              </div>
+                            </div>
                           </div>
                         )}
                       </div>
